@@ -3,7 +3,7 @@ from shutil import get_terminal_size
 from map_elements import *
 from random import randint, choice
 from colorama import Back, Style
-from string import ascii_letters, printable
+
 
 class Screen(enum.Enum):
     """
@@ -66,6 +66,10 @@ def create_island(field: list, free_blocks: list, islands: list, islands_number)
     return True
 
 def find_island(field, island) -> tuple:
+    """
+    Searching the closest island for last created island
+    """
+
     lt_y, lt_x, rb_y, rb_x = island.get_coordinates()
     d_numbers = {0: []}
     step = 0
@@ -73,7 +77,8 @@ def find_island(field, island) -> tuple:
     for i in range(lt_y, rb_y + 1):
         for j in range(lt_x, rb_x + 1):
             case = int(i - lt_y == 0) + int(j - lt_x == 0) + int(i - rb_y == 0) + int(j - rb_x == 0)
-            if case == 1 and ((lt_y + rb_y) // 2 - 2 <= i <= (lt_y + rb_y) // 2 + 2 or (lt_x + rb_x) // 2 - 2 <= j <= (lt_x + rb_x) // 2 + 2):
+
+            if case == 1:
                 field[i][j].set_number(step)
                 d_numbers[step].append((i, j))
     
@@ -89,8 +94,11 @@ def find_island(field, island) -> tuple:
                 if coor[1] > Screen.s_width.value - 2:
                     coor[1] = Screen.s_width.value - 2
                 
+                if field[coor[0]][coor[1]].get_island() is island:
+                    continue
+
                 if not field[coor[0]][coor[1]].is_counted():
-                    if field[coor[0]][coor[1]].__class__.__name__ == 'GroundBlock' and field[coor[0]][coor[1]].get_island() is not island:
+                    if field[coor[0]][coor[1]].__class__.__name__ == 'BridgeBlock' or field[coor[0]][coor[1]].__class__.__name__ == 'GroundBlock' and field[coor[0]][coor[1]].get_island() is not island:
                         return coor[0], coor[1], step + 1
                     
                     field[coor[0]][coor[1]].set_number(step + 1)
@@ -101,6 +109,7 @@ def find_island(field, island) -> tuple:
         
         step += 1
 
+# TODO: Сделать "режчик" мостов
 
 def create_bridge(field, island) -> None:
     """
@@ -108,16 +117,6 @@ def create_bridge(field, island) -> None:
     """
     
     y, x, s = find_island(field, island)
-    """d = {i: printable[i] for i in range(s)}
-    print(d, y, x, s)
-    for f in field:
-        for ff in f:
-            if ff.get_number() < 2**16:
-                print(f'{Back.BLUE}{d[ff.get_number() % s]}{Style.RESET_ALL}', end='')
-            elif ff.__class__.__name__ == 'SeaBlock':
-                print(f'{Back.BLUE} {Style.RESET_ALL}', end='')
-            elif ff.__class__.__name__ == 'GroundBlock':
-                print(f'{Back.GREEN} {Style.RESET_ALL}', end='')"""
 
     while s != 1:
         if field[y - 1][x].get_number() == s - 1:
@@ -130,6 +129,11 @@ def create_bridge(field, island) -> None:
             x = min(Screen.s_width.value - 2, x + 1)
         
         field[y][x] = BridgeBlock(y, x)
+        for i in range(max(0, y - 2), min(y + 2, Screen.f_height.value)):
+            for j in range(max(0, x - 2), min(x + 2, Screen.s_width.value)):
+                if field[i][j].__class__.__name__ == 'SeaBlock':
+                    field[i][j].lock_block()
+        
         s -= 1
     
     for i in range(Screen.f_height.value):

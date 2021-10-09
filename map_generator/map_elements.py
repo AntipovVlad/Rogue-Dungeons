@@ -24,6 +24,9 @@ class Block:
     
     def get_number(self) -> int:
         return self.number
+    
+    def get_island(self) -> object:
+        return self.island
 
 
 class SeaBlock(Block):
@@ -38,9 +41,6 @@ class GroundBlock(Block):
 
         self.island = en_island
         self.is_beach = en_beach
-    
-    def get_island(self) -> object:
-        return self.island
 
 
 class BridgeBlock(Block):
