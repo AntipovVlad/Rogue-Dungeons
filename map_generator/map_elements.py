@@ -1,7 +1,7 @@
 class Block:
     def __init__(self, en_y: int, en_x: int) -> None:
         self.locked = False
-        self.number = 0
+        self.number = 2 ** 16
         self.island = None
 
         self.y = en_y
@@ -10,17 +10,17 @@ class Block:
     def lock_block(self) -> None:
         self.locked = True
     
-    def count(self, en_number: int) -> None:
+    def set_number(self, en_number: int) -> None:
         self.number = en_number
     
     def null(self) -> None:
-        self.number = 0
+        self.number = 2 ** 16
     
     def is_locked(self) -> bool:
-        return self.changeable
+        return self.locked
     
     def is_counted(self) -> bool:
-        return bool(self.counted)
+        return self.number != 2 ** 16
     
     def get_number(self) -> int:
         return self.number
@@ -54,4 +54,4 @@ class RectangularIsland:
         self.rb_y, self.rb_x = coors[1]
     
     def get_coordinates(self) -> tuple:
-        return self.lt_y, self._lt_x, self.rb_y, self.rb_x
+        return self.lt_y, self.lt_x, self.rb_y, self.rb_x
