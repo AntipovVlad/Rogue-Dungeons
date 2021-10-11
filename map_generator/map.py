@@ -78,7 +78,7 @@ def find_island(field, island) -> tuple:
         for j in range(lt_x, rb_x + 1):
             case = int(i - lt_y == 0) + int(j - lt_x == 0) + int(i - rb_y == 0) + int(j - rb_x == 0)
 
-            if case == 1:
+            if case > 0:
                 field[i][j].set_number(step)
                 d_numbers[step].append((i, j))
     
@@ -109,7 +109,6 @@ def find_island(field, island) -> tuple:
         
         step += 1
 
-# TODO: Сделать "режчик" мостов
 
 def create_bridge(field, island) -> None:
     """
