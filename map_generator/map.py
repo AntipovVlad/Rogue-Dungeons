@@ -2,7 +2,6 @@ import enum
 from shutil import get_terminal_size
 from map_elements import *
 from random import randint, choice
-from colorama import Back, Style
 
 
 class Screen(enum.Enum):
@@ -160,18 +159,3 @@ def generate_map(islands_number: int) -> list:
         create_bridge(field, islands[-1])
     
     return field
-
-FIELD = generate_map(10)
-for _ in range(Screen.b_height.value):
-    print('=')
-for f in FIELD:
-    for ff in f:
-        if ff.__class__.__name__ == 'SeaBlock':
-            print(f'{Back.BLUE} {Style.RESET_ALL}', end='')
-        elif ff.__class__.__name__ == 'GroundBlock':
-            print(f'{Back.GREEN} {Style.RESET_ALL}', end='')
-        elif ff.__class__.__name__ == 'BridgeBlock':
-            print(f'{Back.BLACK} {Style.RESET_ALL}', end='')
-for _ in range(Screen.b_height.value):
-    print('=')
-# ║ ═ ╔ ╗ ╚ ╝
