@@ -1,8 +1,9 @@
 class Block:
-    def __init__(self, en_y: int, en_x: int) -> None:
+    def __init__(self, en_y: int, en_x: int, en_type: str) -> None:
         self.locked = False
         self.number = 2 ** 16
         self.island = None
+        self.block_type = en_type
 
         self.y = en_y
         self.x = en_x
@@ -27,16 +28,19 @@ class Block:
     
     def get_island(self) -> object:
         return self.island
+    
+    def get_type(self) -> str:
+        return self.block_type
 
 
 class SeaBlock(Block):
     def __init__(self, en_y: int, en_x: int) -> None:
-        super().__init__(en_y, en_x)
+        super().__init__(en_y, en_x, 'sea')
 
 
 class GroundBlock(Block):
     def __init__(self, en_y: int, en_x: int, en_island: object, en_beach: bool = False) -> None:
-        super().__init__(en_y, en_x)
+        super().__init__(en_y, en_x, 'ground')
         self.lock_block()
 
         self.island = en_island
@@ -45,8 +49,9 @@ class GroundBlock(Block):
 
 class BridgeBlock(Block):
     def __init__(self, en_y: int, en_x: int) -> None:
-        super().__init__(en_y, en_x)
+        super().__init__(en_y, en_x, 'bridge')
         self.lock_block()
+
 
 class RectangularIsland:
     def __init__(self, coors: list) -> None:

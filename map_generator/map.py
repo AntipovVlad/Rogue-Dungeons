@@ -1,6 +1,6 @@
 import enum
 from shutil import get_terminal_size
-from map_elements import *
+from .map_elements import *
 from random import randint, choice
 
 
@@ -32,8 +32,8 @@ def create_island(field: list, free_blocks: list, islands: list, islands_number)
     """
 
     # ========= Counting size of island ========
-    n_min = 5
-    n_max = 0.2
+    n_min = 10
+    n_max = 0.5
 
     a = randint(n_min, int(n_max * Screen.f_height.value))
     b = randint(n_min, int(n_max * Screen.s_width.value))
