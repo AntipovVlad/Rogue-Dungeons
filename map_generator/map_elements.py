@@ -50,13 +50,28 @@ class GroundBlock(Block):
 class BridgeBlock(Block):
     def __init__(self, en_y: int, en_x: int) -> None:
         super().__init__(en_y, en_x, 'bridge')
+        self.visibility = False
+
         self.lock_block()
+    
+    def is_visible(self) -> bool:
+        return self.visibility
+    
+    def make_visible(self) -> None:
+        self.visibility = True
 
 
 class RectangularIsland:
     def __init__(self, coors: list) -> None:
         self.lt_y, self.lt_x = coors[0]
         self.rb_y, self.rb_x = coors[1]
+        self.visibility = False
     
     def get_coordinates(self) -> tuple:
         return self.lt_y, self.lt_x, self.rb_y, self.rb_x
+    
+    def is_visible(self) -> bool:
+        return self.visibility
+    
+    def make_visible(self) -> None:
+        self.visibility = True

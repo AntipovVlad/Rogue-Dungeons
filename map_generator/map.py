@@ -139,7 +139,7 @@ def create_bridge(field, island) -> None:
             field[i][j].null()
     
 
-def generate_map(islands_number: int) -> list:
+def generate_map(islands_number: int) -> tuple:
     """
     Generating map for current level
     """
@@ -158,4 +158,4 @@ def generate_map(islands_number: int) -> list:
             break
         create_bridge(field, islands[-1])
     
-    return field
+    return field, islands
