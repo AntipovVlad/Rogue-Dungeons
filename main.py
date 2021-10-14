@@ -1,12 +1,12 @@
 import curses
 from map_generator import map, map_elements
-from game_objects import hero, enemy, bomb
-from random import randint
+from game_objects import hero, enemy, bomb, stair
+from random import randint, choice
 from time import time
 
 
 menu = ['Play', 'Scoreboard', 'Exit']
-objects = {'Hero': None, 'Enemies': [], 'Bombs': []}
+objects = {'Hero': None, 'Stair': None, 'Enemies': [], 'Bombs': [], 'Coins': [], 'Boxes': []}
 
 def print_menu(stdscr, selected_row_idx):
     global menu
@@ -36,13 +36,14 @@ def add_str(stdscr, y, x, s, t) -> None:
 def play(stdscr):
     global objects
 
-    levels = 1
+    levels = 3
+    h, w = stdscr.getmaxyx()
+    y, x = int(h * 0.1), 0
 
     for _ in range(levels):
-        field, rooms, bridges = map.generate_map(2)
+        field, rooms, bridges = map.generate_map(5)
         start = time()
-        h, w = stdscr.getmaxyx()
-        y, x = int(h * 0.1), 0
+        finished = 0
 
         cur_room = rooms[0]
         cur_room.open()
@@ -50,6 +51,8 @@ def play(stdscr):
 
         lt_y, lt_x, rb_y, rb_x = cur_room.get_coordinates()
         hy, hx = (lt_y + rb_y) // 2, (lt_x + rb_x) // 2
+
+        sy, sx = None, None
 
         for i in range(len(field)):
             for j in range(len(field[0])):
@@ -67,6 +70,9 @@ def play(stdscr):
                 if obj == 'Hero':
                     t = 4 if field[hy][hx].get_type() == 'room' else 1
                     add_str(stdscr, y + hy, hx, '@', t)
+                elif obj == 'Stair' and sy is not None:
+                    t = 17 + int(time() - start) % 5
+                    add_str(stdscr, y + sy, sx, '█', t)
             
             for i in range(len(field)):
                 for j in range(len(field[0])):
@@ -96,6 +102,7 @@ def play(stdscr):
                 
                 hx += 1
             elif key == ord('o'):
+                finished += 1
                 if field[hy][hx].get_type() == 'room':
                     cur_room = field[hy][hx].get_zone()
                 
@@ -124,14 +131,34 @@ def play(stdscr):
         
                             add_str(stdscr, y + i, x + j, field[i][j].get_skin(), t)
             
+            if finished == len(rooms) and sy is None:
+                room = choice(rooms)
+                lt_y, lt_x, rb_y, rb_x = cur_room.get_coordinates()
+
+                sy, sx = randint(lt_y + 1, rb_y - 1), randint(lt_x + 1, rb_x - 1)
+                while field[sy][sx].get_skin() != ' ':
+                    sy, sx = randint(lt_y + 1, rb_y - 1), randint(lt_x + 1, rb_x - 1)
+
+                objects['Stair'] = stair.Stair(sy, sx)
+                
+            if hy == sy and hx == sx:
+                break
+                
             stdscr.refresh()
+        
+        field.clear()
+        rooms.clear()
+        bridges.clear()
+        stdscr.clear()
+
+        curses.beep()
 
 def main(stdscr):
     curses.curs_set(0)
     curses.start_color()
     curses.use_default_colors()
     stdscr.nodelay(1)
-    stdscr.timeout(50)
+    stdscr.timeout(100)
 
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
     curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_BLACK)
@@ -144,7 +171,7 @@ def main(stdscr):
     current_row_idx = 0
     
     print_menu(stdscr, current_row_idx)
-
+    
     while 1:
         key = stdscr.getch()
 
