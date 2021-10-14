@@ -1,14 +1,16 @@
 import curses
-from os import SEEK_DATA
-import time
 from map_generator import map, map_elements
 from game_objects import hero, enemy, bomb
-from curses import textpad
+from random import randint
+from time import time
+
 
 menu = ['Play', 'Scoreboard', 'Exit']
 objects = {'Hero': None, 'Enemies': [], 'Bombs': []}
 
 def print_menu(stdscr, selected_row_idx):
+    global menu
+
     stdscr.clear()
     h, w = stdscr.getmaxyx()
 
@@ -37,7 +39,8 @@ def play(stdscr):
     levels = 1
 
     for _ in range(levels):
-        field, rooms, bridges = map.generate_map(5)
+        field, rooms, bridges = map.generate_map(2)
+        start = time()
         h, w = stdscr.getmaxyx()
         y, x = int(h * 0.1), 0
 
@@ -51,43 +54,44 @@ def play(stdscr):
         for i in range(len(field)):
             for j in range(len(field[0])):
                 if field[i][j].get_type() == 'stone':
-                    t = 2
+                    add_str(stdscr, y + i, x + j, field[i][j].get_skin(), 17)
                 elif field[i][j].get_type() == 'room':
-                    t = 4 if field[i][j].is_visible() else 2
-                elif field[i][j].get_type() == 'bridge':
-                    t = 4 if field[i][j].is_visible() else 2
-                
-                add_str(stdscr, y + i, x + j, field[i][j].get_skin(), t)
+                    add_str(stdscr, y + i, x + j, field[i][j].get_skin(), 4 if field[i][j].is_visible() else 17 + int(time() - start) % 5)
 
                 stdscr.refresh()
 
         objects['Hero'] = hero.Hero(hy, hx)
-
+        
         while 1:
             for obj in objects:
                 if obj == 'Hero':
-                    t = 4
+                    t = 4 if field[hy][hx].get_type() == 'room' else 1
                     add_str(stdscr, y + hy, hx, '@', t)
+            
+            for i in range(len(field)):
+                for j in range(len(field[0])):
+                    if (field[i][j].get_type() == 'stone' or field[i][j].get_type() == 'room' and not field[i][j].is_visible()) and field[i][j].get_skin() in ['█', '╔', '╗', '╚', '╝']:
+                        add_str(stdscr, y + i, x + j, field[i][j].get_skin(), 17 + int(time() - start) % 5)
             
             key = stdscr.getch()
 
-            if key == ord('w') and field[hy - 1][hx].get_skin() == ' ':
-                t = 4 if field[hy][hx].get_type() == 'room' else 1
+            if key == ord('w') and field[hy - 1][hx].get_skin() == ' ' and field[hy - 1][hx].get_type() in ['room', 'bridge']:
+                t = 4 if field[hy][hx].get_type() == 'room' else 2
                 add_str(stdscr, y + hy, hx, field[hy][hx].get_skin(), t)
 
                 hy -= 1
-            elif key == ord('s') and field[hy + 1][hx].get_skin() == ' ':
-                t = 4 if field[hy][hx].get_type() == 'room' else 1
+            elif key == ord('s') and field[hy + 1][hx].get_skin() == ' ' and field[hy + 1][hx].get_type() in ['room', 'bridge']:
+                t = 4 if field[hy][hx].get_type() == 'room' else 2
                 add_str(stdscr, y + hy, hx, field[hy][hx].get_skin(), t)
 
                 hy += 1
-            elif key == ord('a') and field[hy][hx - 1].get_skin() == ' ':
-                t = 4 if field[hy][hx].get_type() == 'room' else 1
+            elif key == ord('a') and field[hy][hx - 1].get_skin() == ' ' and field[hy][hx - 1].get_type() in ['room', 'bridge']:
+                t = 4 if field[hy][hx].get_type() == 'room' else 2
                 add_str(stdscr, y + hy, hx, field[hy][hx].get_skin(), t)
 
                 hx -= 1
-            elif key == ord('d') and field[hy][hx + 1].get_skin() == ' ':
-                t = 4 if field[hy][hx].get_type() == 'room' else 1
+            elif key == ord('d') and field[hy][hx + 1].get_skin() == ' ' and field[hy][hx + 1].get_type() in ['room', 'bridge']:
+                t = 4 if field[hy][hx].get_type() == 'room' else 2
                 add_str(stdscr, y + hy, hx, field[hy][hx].get_skin(), t)
                 
                 hx += 1
@@ -98,12 +102,13 @@ def play(stdscr):
                 for dots, bridge in cur_room.open_bridges():
                     for dot in dots:
                         field[dot[0]][dot[1]] = map_elements.BridgeBlock(dot[0], dot[1], bridge)
+                        field[dot[0]][dot[1]].make_visible()
                         field[dot[0]][dot[1]].set_activator([field[dot[0] - 1][dot[1]], field[dot[0] + 1][dot[1]], field[dot[0]][dot[1] - 1], field[dot[0]][dot[1] + 1]])
                             
                 for i in range(len(field)):
                     for j in range(len(field[0])):
                         if field[i][j].get_type() == 'bridge':
-                            t = 1 if field[i][j].is_visible() else 2
+                            t = 2 if field[i][j].is_visible() else 3
                         
                             add_str(stdscr, y + i, x + j, field[i][j].get_skin(), t)
             elif key == curses.KEY_ENTER or key in [10, 13]:
@@ -115,7 +120,7 @@ def play(stdscr):
                 for i in range(len(field)):
                     for j in range(len(field[0])):
                         if field[i][j].get_type() == 'room':
-                            t = 4 if field[i][j].is_visible() else 2
+                            t = 4 if field[i][j].is_visible() else 17 + int(time() - start) % 5
         
                             add_str(stdscr, y + i, x + j, field[i][j].get_skin(), t)
             
@@ -125,11 +130,16 @@ def main(stdscr):
     curses.curs_set(0)
     curses.start_color()
     curses.use_default_colors()
+    stdscr.nodelay(1)
+    stdscr.timeout(50)
 
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
     curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_BLACK)
-    curses.init_pair(3, curses.COLOR_GREEN, curses.COLOR_BLACK)
+    curses.init_pair(3, -1, -1)
     curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_BLACK)
+
+    for i in range(17, 22):
+        curses.init_pair(i, i, -1)
 
     current_row_idx = 0
     

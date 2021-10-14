@@ -108,7 +108,7 @@ def find_room(field, room) -> tuple:
                     continue
 
                 if not field[coor[0]][coor[1]].is_counted():
-                    if field[coor[0]][coor[1]].get_type() == 'bridge' or field[coor[0]][coor[1]].get_skin() in ['║', '═'] and field[coor[0]][coor[1]].get_zone() is not room:
+                    if field[coor[0]][coor[1]].get_type() == 'bridge' or field[coor[0]][coor[1]].get_skin() in ['║', '═']:
                         return coor[0], coor[1], step + 1
                     
                     field[coor[0]][coor[1]].set_number(step + 1)
@@ -150,7 +150,7 @@ def create_bridge(field: list, room: Room, bridges: list) -> None:
         bridge.add_block(field[y][x])
         for i in range(max(0, y - 2), min(y + 2, Screen.f_height.value)):
             for j in range(max(0, x - 2), min(x + 2, Screen.s_width.value)):
-                if field[i][j].__class__.__name__ == 'StoneBlock':
+                if field[i][j].get_type() == 'stone':
                     field[i][j].lock_block()
         
         s -= 1
@@ -177,7 +177,7 @@ def generate_map(rooms_number: int) -> tuple:
     Generating map for current level
     """
 
-    field = [[StoneBlock(i, j) for j in range(Screen.s_width.value)] for i in range(Screen.f_height.value)]
+    field = [[StoneBlock(i, j, randint(0, 100)) for j in range(Screen.s_width.value)] for i in range(Screen.f_height.value)]
     rooms, bridges = [], []
     free_blocks = []
     for i in range(1, Screen.f_height.value - 1):

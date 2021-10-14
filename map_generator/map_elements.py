@@ -57,9 +57,9 @@ class Zone:
 
 
 class StoneBlock(Block):
-    def __init__(self, en_y: int, en_x: int) -> None:
+    def __init__(self, en_y: int, en_x: int, r: int) -> None:
         super().__init__(en_y, en_x, 'stone')
-        self.skin = '█'
+        self.skin = '█' if r % 25 == 0 else ' '
         
         self.make_visible()
 
