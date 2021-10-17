@@ -122,10 +122,14 @@ class Room(Zone):
     def is_activated(self) -> bool:
         return self.activated
     
-    def activate(self, en_enemies: list = []) -> None:
+    def activate(self, en_enemies: list = []) -> bool:
         if not self.activated:
             self.activated = True
             self.enemies = en_enemies.copy()
+
+            return True
+        
+        return False
 
 
 class Bridge(Zone):
