@@ -1,10 +1,6 @@
-class Stair:
+from .base_object import *
+
+
+class Stair(BaseObject):
     def __init__(self, en_y: int, en_x: int) -> None:
-        self.y, self.x = en_y, en_x
-        self.skin = 'e'
-
-    def get_skin(self) -> str:
-        return self.skin
-
-    def get_coordinates(self) -> tuple:
-        return self.y, self.x
+        super().__init__(en_y, en_x, 'stair', 'e')

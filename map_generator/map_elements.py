@@ -91,9 +91,13 @@ class BridgeBlock(Block):
                 self.rb = s
                 break
     
-    def activate(self) -> None:
+    def activate(self) -> bool:
         if self.activator:
             self.rb.get_zone().open()
+
+            return True
+        
+        return False
 
 
 class Room(Zone):
@@ -122,14 +126,10 @@ class Room(Zone):
     def is_activated(self) -> bool:
         return self.activated
     
-    def activate(self, en_enemies: list = []) -> bool:
+    def activate(self, en_enemies: list = []) -> None:
         if not self.activated:
             self.activated = True
             self.enemies = en_enemies.copy()
-
-            return True
-        
-        return False
 
 
 class Bridge(Zone):
