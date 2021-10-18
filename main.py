@@ -2,7 +2,7 @@ import curses
 from map_generator import map, map_elements
 from game_objects import hero, enemy, bomb, stair
 from random import randint, choice
-from time import time
+from time import time, sleep
 
 
 menu = ['Play', 'Scoreboard', 'Exit']
@@ -64,13 +64,19 @@ def create_object(tp, objects_coors, field, coors, hero=None) -> None:
             if objects_coors.get(coors) is None:
                 objects_coors[coors] = bomb.Explosion(coors[0], coors[1], time())
             
-            if objects_coors[coors].get_type() in ['enemy', 'hero']:
+            if objects_coors.get(coors) is not None and objects_coors[coors].get_type() == 'hero':
                 objects_coors[coors].de_health()
             
-            if objects_coors[coors].get_type() == 'box':
+            if objects_coors.get(coors) is not None and objects_coors[coors].get_type() == 'enemy':
+                en = objects_coors[coors].de_health(objects_coors)
+
+                if en is not None:
+                    en.get_room().del_enemy(en)
+            
+            if objects_coors.get(coors) is not None and objects_coors[coors].get_type() == 'box':
                 pass
 
-            if objects_coors[coors].get_type() == 'coin':
+            if objects_coors.get(coors) is not None and objects_coors[coors].get_type() == 'coin':
                 pass
 
 
@@ -111,6 +117,37 @@ def check_collitions(hero, objects_coors, field, coors) -> bool:
             objects_coors[coors] = hero
 
     return False
+
+
+def activate_room(room, objects_coors, field, enemies) -> None:
+    if not room.is_activated():
+        lt_y, lt_x, rb_y, rb_x = room.get_coordinates()
+        room_enemies = []
+
+        for _ in range(2):
+            by, bx = randint(lt_y + 1, rb_y - 1), randint(lt_x + 1, rb_x - 1)
+            en = enemy.Snake(by, bx, room)
+            while not en.can_extist(field, objects_coors):
+                by, bx = randint(lt_y + 1, rb_y - 1), randint(lt_x + 1, rb_x - 1)
+                en = enemy.Snake(by, bx, room)
+            
+            for coors in en.get_coordinates():
+                objects_coors[coors] = en
+            
+            room_enemies.append(en)
+            enemies.append(en)
+        
+        room.activate(room_enemies)
+
+
+def move(enemies, objects_coors, field, hero) -> None:
+    for en in enemies:
+        en.de_freeze(time())
+        en.change_direction()
+
+        if not en.is_freeze():
+            en.move(field, objects_coors, hero)
+
 
 def out_info(stdscr, hero) -> None:
     h, w = stdscr.getmaxyx()
@@ -171,7 +208,7 @@ def out_objects(stdscr, field, objects_coors, hero) -> None:
     c_objects_coors = objects_coors.copy()
 
     for coors in c_objects_coors:
-        obj = objects_coors[coors]
+        obj = c_objects_coors[coors]
 
         if obj.get_type() == 'hero':
             t, s = 4 if field[coors[0]][coors[1]].get_type() == 'room' else 1, obj.get_skin()
@@ -195,6 +232,8 @@ def out_objects(stdscr, field, objects_coors, hero) -> None:
                 t, s = 2, ' '
             else:
                 t, s = 7, obj.get_skin()
+        elif obj.get_type() == 'enemy':
+            t, s = 4, obj.get_skin()
         
         add_str(stdscr, y + coors[0], coors[1], s, t)
     
@@ -206,7 +245,8 @@ def play(stdscr) -> None:
 
     for _ in range(levels):
         objects_coors = {}
-        ex = False
+        enemies = []
+        c_exit = False
 
         field, rooms, bridges = map.generate_map(5)
         start = time()
@@ -214,17 +254,20 @@ def play(stdscr) -> None:
 
         cur_room = rooms[0]
         cur_room.open()
-        cur_room.activate()
 
         lt_y, lt_x, rb_y, rb_x = cur_room.get_coordinates()
         hy, hx = (lt_y + rb_y) // 2, (lt_x + rb_x) // 2
         H = hero.Hero(hy, hx)
         objects_coors[(hy, hx)] = H
 
-        while not ex:
+        activate_room(cur_room, objects_coors, field, enemies)
+
+        while not c_exit:
             if H.is_dead():
                 return False
             
+            move(enemies, objects_coors, field, H)
+
             out_info(stdscr, H)
             out_map(stdscr, field, start)
             out_objects(stdscr, field, objects_coors, H)
@@ -237,25 +280,39 @@ def play(stdscr) -> None:
                 if key == ord(l):
                     command = check_collitions(H, objects_coors, field, (ny, nx))
                     if command:
-                        ex = True
+                        c_exit = True
                         out_map(stdscr, field, start)
                         out_objects(stdscr, field, objects_coors, H)
                         stdscr.refresh()
 
                     hy, hx = H.get_coordinates()
+                    cur_room = cur_room if field[hy][hx].get_type() == 'bridge' else field[hy][hx].get_zone()
+                    enemies = cur_room.get_enemies()
                     
                     break
                                 
             for k, ny, nx in [[curses.KEY_UP, hy - 1, hx], [curses.KEY_DOWN, hy + 1, hx], [curses.KEY_LEFT, hy, hx - 1], [curses.KEY_RIGHT, hy, hx + 1]]:
                 if key == k:
-                    create_object('bomb', objects_coors, field, (ny, nx), H)
+                    create_object('bomb', objects_coors, field, (ny, nx), hero=H)
                     
                     break
             
-            if key == ord('o'):
+            if key == curses.KEY_ENTER or key in [10, 13]:
+                c_objects_coors = objects_coors.copy()
+
+                for coors in c_objects_coors:
+                    obj = c_objects_coors[coors]
+                    if obj.get_type() == 'bomb':
+                        objects_coors.pop(obj.get_coordinates())
+                        H.in_bombs()
+                        
+                        for ey, ex in obj.explode():
+                            create_object('expl', objects_coors, field, (ey, ex))
+            
+            if key == ord('o') or not cur_room.is_cleared() and len(cur_room.get_enemies()) == 0:
                 cleared += 1
-                if field[hy][hx].get_type() == 'room':
-                    cur_room = field[hy][hx].get_zone()
+
+                cur_room.clear()
                 
                 for dots, bridge in cur_room.open_bridges():
                     for dot in dots:
@@ -271,13 +328,12 @@ def play(stdscr) -> None:
                         sy, sx = randint(lt_y + 1, rb_y - 1), randint(lt_x + 1, rb_x - 1)
 
                     objects_coors[(sy, sx)] = stair.Stair(sy, sx)
-            elif key == curses.KEY_ENTER or key in [10, 13]:
-                break
             
             if field[hy][hx].get_type() == 'bridge':
                 if field[hy][hx].activate():
-                    opened_room = field[hy][hx].get_room()
-                    
+                    opened_room = field[hy][hx].get_room().get_zone()
+
+                    activate_room(opened_room, objects_coors, field, enemies)                    
                 
             stdscr.refresh()
         
@@ -302,7 +358,7 @@ def init_curses():
     curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_BLACK)
 
     # ======== Bombs ========
-    curses.init_pair(5, 17, curses.COLOR_BLACK)
+    curses.init_pair(5, 233, curses.COLOR_BLACK)
     curses.init_pair(6, curses.COLOR_WHITE, curses.COLOR_BLACK)
 
     # ======== Explosion ========

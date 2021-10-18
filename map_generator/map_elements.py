@@ -109,6 +109,7 @@ class Room(Zone):
         self.lt_y, self.lt_x = coors[0]
         self.rb_y, self.rb_x = coors[1]
         self.activated = False
+        self.cleared = False
 
         self.blocks = []
         self.bridges = []
@@ -116,6 +117,18 @@ class Room(Zone):
     
     def get_coordinates(self) -> tuple:
         return self.lt_y, self.lt_x, self.rb_y, self.rb_x
+    
+    def get_enemies(self) -> list:
+        return self.enemies
+    
+    def is_cleared(self) -> bool:
+        return self.cleared
+    
+    def del_enemy(self, en) -> None:
+        self.enemies.remove(en)
+    
+    def clear(self) -> None:
+        self.cleared = True
 
     def open_bridges(self) -> None:
         for bridge in self.bridges:
