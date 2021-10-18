@@ -84,6 +84,9 @@ class BridgeBlock(Block):
 
         self.lock_block()
     
+    def get_room(self) -> object:
+        return self.rb
+    
     def set_activator(self, sur: list) -> None:
         for s in sur:
             if s.get_type() == 'room' and not s.is_visible():
@@ -93,6 +96,7 @@ class BridgeBlock(Block):
     
     def activate(self) -> bool:
         if self.activator:
+            self.activator = False
             self.rb.get_zone().open()
 
             return True

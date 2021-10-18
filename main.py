@@ -1,5 +1,4 @@
 import curses
-from math import exp
 from map_generator import map, map_elements
 from game_objects import hero, enemy, bomb, stair
 from random import randint, choice
@@ -276,7 +275,9 @@ def play(stdscr) -> None:
                 break
             
             if field[hy][hx].get_type() == 'bridge':
-                field[hy][hx].activate()
+                if field[hy][hx].activate():
+                    opened_room = field[hy][hx].get_room()
+                    
                 
             stdscr.refresh()
         
