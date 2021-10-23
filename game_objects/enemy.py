@@ -8,7 +8,7 @@ class Snake:
         self.body = [(en_y, en_x - i) for i in range(self.hp)]
         self.room = en_room
         self.direction = choice(['l', 't', 'r', 'b'])
-        self.in_freeze = 2
+        self.in_freeze = 1
         self.in_move = 0.2
         self.in_change = 1.6
         self.t_freeze = None
@@ -26,6 +26,12 @@ class Snake:
     def get_room(self) -> object:
         return self.room
     
+    def get_health(self) -> int:
+        return self.hp
+    
+    def is_freeze(self) -> bool:
+        return self.t_freeze is not None
+    
     def can_extist(self, field: list, objects_coors: dict) -> bool:
         flag = True
         for b in self.body:
@@ -36,12 +42,12 @@ class Snake:
     def get_coordinates(self):
         return self.body
 
-    def de_freeze(self, tm) -> None:
-        if self.t_freeze is not None and float(tm - self.t_freeze) > self.in_freeze:
+    def de_freeze(self) -> None:
+        if self.t_freeze is not None and float(time() - self.t_freeze) > self.in_freeze:
             self.t_freeze = None
     
-    def is_freeze(self) -> bool:
-        return self.t_freeze is not None
+    def set_freeze(self) -> None:
+        self.t_freeze = time()
     
     def move(self, field: list, objects_coors: dict, hero: object) -> None:
         if float(time() - self.t_move) > self.in_move:
@@ -58,12 +64,12 @@ class Snake:
             elif self.direction == 'b':
                 new_head = (head[0] + 1, head[1])
             
-            if objects_coors.get(new_head) is None and field[new_head[0]][new_head[1]].get_type() == 'room':
-                if field[new_head[0]][new_head[1]].get_skin() == ' ':
+            if field[new_head[0]][new_head[1]].get_type() == 'room':
+                if objects_coors.get(new_head) is None and field[new_head[0]][new_head[1]].get_skin() == ' ':
                     objects_coors[new_head] = self
                     self.body.insert(0, new_head)
                     objects_coors.pop(self.body.pop())
-                elif field[new_head[0]][new_head[1]].get_skin() in ['@', 'a']:
+                elif objects_coors.get(new_head) is not None and objects_coors.get(new_head).get_skin() in ['@', 'a']:
                     hero.de_health()
                     self.t_freeze = time()
                 else:
@@ -79,9 +85,11 @@ class Snake:
             else:
                 self.direction = choice(['l', 'r'])
     
-    def de_health(self, objects_coors, d=1) -> None:
+    def de_health(self, objects_coors, d=1) -> bool:
         self.hp -= d
         objects_coors.pop(self.body.pop())
 
         if self.hp < 1:
-            return self
+            return True
+        
+        return False

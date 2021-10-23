@@ -113,19 +113,19 @@ class Room(Zone):
 
         self.blocks = []
         self.bridges = []
-        self.enemies = []
+        self.enemies = set()
     
     def get_coordinates(self) -> tuple:
         return self.lt_y, self.lt_x, self.rb_y, self.rb_x
     
-    def get_enemies(self) -> list:
+    def get_enemies(self) -> set:
         return self.enemies
     
     def is_cleared(self) -> bool:
         return self.cleared
     
     def del_enemy(self, en) -> None:
-        self.enemies.remove(en)
+        self.enemies.discard(en)
     
     def clear(self) -> None:
         self.cleared = True
@@ -136,7 +136,6 @@ class Room(Zone):
 
             yield bridge.get_conn_dots(), bridge
 
-    
     def add_bridge(self, bridge: object):
         self.bridges.append(bridge)
     
@@ -146,7 +145,7 @@ class Room(Zone):
     def activate(self, en_enemies: list = []) -> None:
         if not self.activated:
             self.activated = True
-            self.enemies = en_enemies.copy()
+            self.enemies = set(en_enemies.copy())
 
 
 class Bridge(Zone):
