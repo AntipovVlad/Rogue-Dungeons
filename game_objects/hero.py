@@ -1,9 +1,9 @@
 from .base_object import *
 
-
+# 'త'chr(int('1F577', 16))
 class Hero(BaseObject):
     def __init__(self, en_y: int, en_x: int) -> None:
-        super().__init__(en_y, en_x, 'hero', '@')
+        super().__init__(en_y, en_x, 'hero', 'Ѫ')
         self.max_hp, self.hp = 3, 3
         self.armor = 1
         self.max_bombs, self.bombs = 3, 3

@@ -10,19 +10,43 @@ menu = ['Play', 'Scoreboard', 'Exit']
 
 def print_menu(stdscr, selected_row_idx):
     global menu
+    screen = []
+    mx_len = 0
 
     stdscr.clear()
+    
+    with open('start_screen.txt', 'r') as f:
+        screen = [i.replace('\n', '') for i in f.readlines()]
+        screen[0] = screen[0][1:]
+    
+    stdscr.addstr(0, 0, str(ord(screen[0][0])))
+
+    for i in range(len(screen)):
+        mx_len = max(mx_len, len(screen[i]))
+
+        for j in range(len(screen[i])):
+            if screen[i][j] not in ['█', '▄', '▀']:
+                add_str(stdscr, i, j, screen[i][j], 17)
+                # stdscr.addstr(i, j, screen[i][j])
+            else:
+                stdscr.addstr(i, j, screen[i][j])
+    
     h, w = stdscr.getmaxyx()
 
+    for i in range(len(menu) * 2 + 1):
+        for j in range(len(sorted(menu, key=len, reverse=True)[0]) * 2 + 1):
+            x = mx_len // 2 + w // 2 + j - len(sorted(menu, key=len, reverse=True)[0])
+            y = h // 2 - len(menu) + i - 1
+
+            add_str(stdscr, y, x, ' ', 12)
+    
     for idx, row in enumerate(menu):
-        x = w // 2 - len(row) // 2
-        y = h // 2 - len(menu) // 2 + idx
+        x = mx_len // 2 + w // 2 - len(' '.join(list(row.upper()))) // 2
+        y = h // 2 - len(menu) + idx * 2
         if idx == selected_row_idx:
-            stdscr.attron(curses.color_pair(1))
-            stdscr.addstr(y, x, row)
-            stdscr.attroff(curses.color_pair(1))
+            add_str(stdscr, y, x, ' '.join(list(row.upper())), 1)
         else:
-            stdscr.addstr(y, x, row)
+            add_str(stdscr, y, x, ' '.join(list(row.upper())), 12)
     
     stdscr.refresh()
 
@@ -99,7 +123,7 @@ def create_object(tp: str, objects_coors: dict, field: list, extra_params: dict)
 def check_collitions(hero, objects_coors, field, coors) -> bool:
     global SCORE
 
-    if field[coors[0]][coors[1]].get_skin() == ' ' and field[coors[0]][coors[1]].get_type() in ['room', 'bridge']:
+    if field[coors[0]][coors[1]].get_skin() == ' ' and field[coors[0]][coors[1]].get_type() == 'room' or field[coors[0]][coors[1]].get_type() == 'bridge':
         if objects_coors.get(coors) is None:
             py, px = hero.get_coordinates()
             objects_coors.pop((py, px))
@@ -199,6 +223,8 @@ def move(enemies, objects_coors, field, hero) -> None:
         if obj.get_type() == 'expl':
             if int(time() - obj.get_time()) > obj.get_live():
                 objects_coors.pop(obj.get_coordinates())
+        if obj.get_type() == 'coin':
+            obj.blink()
 
     c_enemies = enemies.copy()
     for en in c_enemies:
@@ -254,15 +280,26 @@ def out_map(stdscr, field, start) -> None:
         for j in range(len(field[0])):
             if field[i][j].get_type() == 'stone':
                 add_str(stdscr, y + i, j, field[i][j].get_skin(), 117 + int(time() - start) % 5)
-            elif field[i][j].get_type() == 'room':
-                add_str(stdscr, y + i, j, field[i][j].get_skin(), 4 if field[i][j].is_visible() else 117 + int(time() - start) % 5)
-            elif field[i][j].get_type() == 'bridge':            
-                add_str(stdscr, y + i, j, field[i][j].get_skin(), 2 if field[i][j].is_visible() else 3)
+            elif field[i][j].get_type() == 'room':                
+                if not field[i][j].is_visible():
+                    t = 117 + int(time() - start) % 5
+                else:
+                    t = 2
+                add_str(stdscr, y + i, j, field[i][j].get_skin(), t)
+            elif field[i][j].get_type() == 'bridge':
+                if field[i][j].is_visible():
+                    if field[i][j].get_room() is not None:
+                        if not field[i][j].get_room().is_activated():
+                            add_str(stdscr, y + i, j, field[i][j].get_skin(), 3)
+                    else:
+                        add_str(stdscr, y + i, j, field[i][j].get_skin(), 12)
+                else:
+                    add_str(stdscr, y + i, j, field[i][j].get_skin(), 3)
     
     stdscr.refresh()
 
 
-def out_objects(stdscr, field, objects_coors, hero) -> None:
+def out_objects(stdscr, field, objects_coors) -> None:
     h, _ = stdscr.getmaxyx()
     y = int(h * 0.1)
     
@@ -272,7 +309,7 @@ def out_objects(stdscr, field, objects_coors, hero) -> None:
         obj = c_objects_coors[coors]
 
         if obj.get_type() == 'hero':
-            t, s = 4 if field[coors[0]][coors[1]].get_type() == 'room' else 1, obj.get_skin()
+            t, s = 15 if field[coors[0]][coors[1]].get_type() == 'room' else 12, obj.get_skin()
         elif obj.get_type() == 'stair':
             t, s = 203, obj.get_skin()
         elif obj.get_type() == 'bomb':
@@ -280,9 +317,9 @@ def out_objects(stdscr, field, objects_coors, hero) -> None:
         elif obj.get_type() == 'expl':
             t, s = 7, obj.get_skin()
         elif obj.get_type() == 'enemy':
-            t, s = 4, obj.get_skin()
+            t, s = 14, obj.get_skin()
         elif obj.get_type() == 'coin':
-            t, s = 11, obj.get_skin()
+            t, s = 13, obj.get_skin()
         
         add_str(stdscr, y + coors[0], coors[1], s, t)
     
@@ -319,7 +356,7 @@ def play(stdscr) -> None:
 
             out_info(stdscr, H)
             out_map(stdscr, field, start)
-            out_objects(stdscr, field, objects_coors, H)
+            out_objects(stdscr, field, objects_coors)
 
             key = stdscr.getch()
 
@@ -331,7 +368,7 @@ def play(stdscr) -> None:
                     if command:
                         c_exit = True
                         out_map(stdscr, field, start)
-                        out_objects(stdscr, field, objects_coors, H)
+                        out_objects(stdscr, field, objects_coors)
                         stdscr.refresh()
 
                     hy, hx = H.get_coordinates()
@@ -358,7 +395,7 @@ def play(stdscr) -> None:
                         for ey, ex in obj.explode():
                             create_object('expl', objects_coors, field, {'coors': (ey, ex)})
             
-            if not cur_room.is_cleared() and len(cur_room.get_enemies()) == 0:
+            if key == ord('o') or not cur_room.is_cleared() and len(cur_room.get_enemies()) == 0:
                 cleared += 1
 
                 cur_room.clear()
@@ -367,16 +404,20 @@ def play(stdscr) -> None:
                     for dot in dots:
                         field[dot[0]][dot[1]] = map_elements.BridgeBlock(dot[0], dot[1], bridge)
                         field[dot[0]][dot[1]].make_visible()
-                        field[dot[0]][dot[1]].set_activator([field[dot[0] - 1][dot[1]], field[dot[0] + 1][dot[1]], field[dot[0]][dot[1] - 1], field[dot[0]][dot[1] + 1]])
+                        if not field[dot[0]][dot[1]].set_activator([field[dot[0] - 1][dot[1]], field[dot[0] + 1][dot[1]], field[dot[0]][dot[1] - 1], field[dot[0]][dot[1] + 1]]):
+                            field[dot[0]][dot[1]] = map_elements.RoomBlock(dot[0], dot[1], cur_room, '')
+                            field[dot[0]][dot[1]].make_visible()
                 
                 if cleared == len(rooms):
                     create_object('stair', objects_coors, field, {'room': cur_room})
             
             if field[hy][hx].get_type() == 'bridge':
                 if field[hy][hx].activate():
-                    opened_room = field[hy][hx].get_room().get_zone()
+                    opened_room = field[hy][hx].get_room()
+                    activate_room(opened_room, objects_coors, field, enemies)
 
-                    activate_room(opened_room, objects_coors, field, enemies)                    
+                    field[hy][hx] = map_elements.RoomBlock(hy, hx, opened_room, '')
+                    field[hy][hx].make_visible()               
                 
             stdscr.refresh()
         
@@ -394,18 +435,23 @@ def init_curses():
     curses.start_color()
     curses.use_default_colors()
 
-    # ======== Field ========
+    # ======== Menu ========
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
-    curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_BLACK)
-    curses.init_pair(3, -1, -1)
-    curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_BLACK)
+    
+    # ======== Field ========
+    curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
+    curses.init_pair(3, curses.COLOR_WHITE, 233)
+    curses.init_pair(4, curses.COLOR_BLACK, curses.COLOR_WHITE)
+    curses.init_pair(11, 12, curses.COLOR_BLACK)
+    curses.init_pair(12, curses.COLOR_BLACK, 12)
+    curses.init_pair(16, 233, curses.COLOR_WHITE)
 
     # ======== Bombs ========
     curses.init_pair(5, 21, curses.COLOR_BLACK)
     curses.init_pair(6, curses.COLOR_WHITE, curses.COLOR_BLACK)
 
     # ======== Explosion ========
-    curses.init_pair(7, 229, curses.COLOR_BLACK)
+    curses.init_pair(7, curses.COLOR_RED, curses.COLOR_BLACK)
     
     # ======== Info board ========
     curses.init_pair(8, curses.COLOR_WHITE, curses.COLOR_WHITE)
@@ -414,10 +460,17 @@ def init_curses():
 
     # ======== Blinking stones ========
     for i in range(17, 22):
-        curses.init_pair(100 + i, i, -1)
+        curses.init_pair(100 + i, i, 233)
     
     # ======== Coins ========
-    curses.init_pair(11, 12, curses.COLOR_BLACK)
+    curses.init_pair(13, 11, curses.COLOR_BLACK)
+
+    # ======== Snake ========
+    curses.init_pair(14, curses.COLOR_CYAN + 8, curses.COLOR_BLACK)
+
+    # ======== Hero ========
+    curses.init_pair(15, curses.COLOR_GREEN + 8, curses.COLOR_BLACK)
+    curses.init_pair(17, curses.COLOR_GREEN + 8, -1)
     
     # ======== Exit ========
     curses.init_pair(203, 203, curses.COLOR_BLACK)

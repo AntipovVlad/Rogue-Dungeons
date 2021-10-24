@@ -53,6 +53,7 @@ def create_room(field: list, free_blocks: list, rooms: list, rooms_number) -> bo
     for i in range(y, y + a):
         for j in range(x, x + b):
             wall = ''
+            
             if x + b - 1 - j == 0:
                 wall += 'r'
             if j - x == 0:
@@ -104,11 +105,11 @@ def find_room(field, room) -> tuple:
                 if coor[1] > Screen.s_width.value - 2:
                     coor[1] = Screen.s_width.value - 2
                 
-                if field[coor[0]][coor[1]].get_zone() is room or field[coor[0]][coor[1]].get_skin() in ['╔', '╗', '╚', '╝']:
+                if field[coor[0]][coor[1]].get_zone() is room or field[coor[0]][coor[1]].get_type() == 'room' and field[coor[0]][coor[1]].get_wall() in ['lt', 'rt', 'lb', 'lt']:
                     continue
 
                 if not field[coor[0]][coor[1]].is_counted():
-                    if field[coor[0]][coor[1]].get_type() == 'bridge' or field[coor[0]][coor[1]].get_skin() in ['║', '═']:
+                    if field[coor[0]][coor[1]].get_type() == 'bridge' or field[coor[0]][coor[1]].get_type() == 'room':
                         return coor[0], coor[1], step + 1
                     
                     field[coor[0]][coor[1]].set_number(step + 1)

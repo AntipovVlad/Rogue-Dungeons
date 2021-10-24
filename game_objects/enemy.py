@@ -15,7 +15,7 @@ class Snake:
         self.t_move = time()
         self.t_change = time()
         self.type = 'enemy'
-        self.skin = '#'
+        self.skin = '◈'
     
     def get_type(self) -> str:
         return self.type

@@ -1,3 +1,6 @@
+from random import choice
+
+
 class Block:
     def __init__(self, en_y: int, en_x: int, en_type: str) -> None:
         self.locked = False
@@ -59,9 +62,16 @@ class Zone:
 class StoneBlock(Block):
     def __init__(self, en_y: int, en_x: int, r: int) -> None:
         super().__init__(en_y, en_x, 'stone')
-        self.skin = '█' if r % 25 == 0 else ' '
-        
+        self.skin = choice(['✦', '✧', '◈']) if r % 25 == 0 else ' '
+        self.br = None
         self.make_visible()
+    
+    def set_stone_border(self, s):
+        self.skin = '▌'
+        self.br = s
+    
+    def get_border(self):
+        return self.br
 
 
 class RoomBlock(Block):
@@ -69,9 +79,13 @@ class RoomBlock(Block):
         super().__init__(en_y, en_x, 'room')
 
         self.zone = en_zone
-        self.skin = {'': ' ', 'l': '║', 'r': '║', 't': '═', 'b': '═', 'lt': '╔', 'rt': '╗', 'lb': '╚', 'rb': '╝'}[en_wall]
-
+        # self.skin = {'': ' ', 'l': '║', 'r': '║', 't': '═', 'b': '═', 'lt': '╔', 'rt': '╗', 'lb': '╚', 'rb': '╝'}[en_wall]
+        self.skin = {'': ' ', 'l': '▌', 'r': '▐', 't': '▀', 'b': '▄', 'lt': '▛', 'rt': '▜', 'lb': '▙', 'rb': '▟'}[en_wall]
+        self.w = en_wall
         self.lock_block()
+    
+    def get_wall(self):
+        return self.w
 
 
 class BridgeBlock(Block):
@@ -87,17 +101,26 @@ class BridgeBlock(Block):
     def get_room(self) -> object:
         return self.rb
     
-    def set_activator(self, sur: list) -> None:
+    def is_activator(self) -> bool:
+        return self.activator
+    
+    def set_skin(self, s: str) -> None:
+        self.skin = s
+    
+    def set_activator(self, sur: list) -> bool:
         for s in sur:
             if s.get_type() == 'room' and not s.is_visible():
                 self.activator = True
-                self.rb = s
-                break
+                self.rb = s.get_zone()
+                
+                return True
+        
+        return False
     
     def activate(self) -> bool:
         if self.activator:
             self.activator = False
-            self.rb.get_zone().open()
+            self.rb.open()
 
             return True
         
