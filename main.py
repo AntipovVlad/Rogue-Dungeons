@@ -19,34 +19,43 @@ def print_menu(stdscr, selected_row_idx):
         screen = [i.replace('\n', '') for i in f.readlines()]
         screen[0] = screen[0][1:]
     
-    stdscr.addstr(0, 0, str(ord(screen[0][0])))
-
     for i in range(len(screen)):
         mx_len = max(mx_len, len(screen[i]))
 
         for j in range(len(screen[i])):
             if screen[i][j] not in ['█', '▄', '▀']:
                 add_str(stdscr, i, j, screen[i][j], 17)
-                # stdscr.addstr(i, j, screen[i][j])
             else:
-                stdscr.addstr(i, j, screen[i][j])
+                add_str(stdscr, i, j, screen[i][j], 121)
     
     h, w = stdscr.getmaxyx()
 
-    for i in range(len(menu) * 2 + 1):
-        for j in range(len(sorted(menu, key=len, reverse=True)[0]) * 2 + 1):
-            x = mx_len // 2 + w // 2 + j - len(sorted(menu, key=len, reverse=True)[0])
-            y = h // 2 - len(menu) + i - 1
+    c = len(sorted(menu, key=len, reverse=True)[0])
+    a, b = len(menu) * 2 + 5, c * 2 + 9
 
-            add_str(stdscr, y, x, ' ', 12)
+    for i in range(a):
+        for j in range(b):
+            x = mx_len // 2 + w // 2 + j - c - 2
+            y = h // 2 - len(menu) + i - 3
+
+            wall = ''
+            if j == b - 1: wall += 'r'
+            if j == 0: wall += 'l'
+            if i == a - 1: wall += 'b'
+            if i == 0: wall += 't'
+            sym = {'': ' ', 'l': '▌', 'r': '▐', 't': '▀', 'b': '▄', 'lt': '▛', 'rt': '▜', 'lb': '▙', 'rb': '▟'}[wall]
+
+            add_str(stdscr, y, x, sym, 2)
     
     for idx, row in enumerate(menu):
-        x = mx_len // 2 + w // 2 - len(' '.join(list(row.upper()))) // 2
+        s = ' '.join(list(row.upper()))
+        x = mx_len // 2 + w // 2 - c - 1
         y = h // 2 - len(menu) + idx * 2
+
         if idx == selected_row_idx:
-            add_str(stdscr, y, x, ' '.join(list(row.upper())), 1)
+            add_str(stdscr, y, x, ' ' + 'Ѫ' + ((b - len(s)) // 2 - 3) * ' '  + s + ((b - len(s)) // 2 - 3) * ' ' + 'Ѫ' + ' ', 1)
         else:
-            add_str(stdscr, y, x, ' '.join(list(row.upper())), 12)
+            add_str(stdscr, y, x, ((b - len(s)) // 2 - 1) * ' '  + s + ((b - len(s)) // 2 - 1) * ' ', 2)
     
     stdscr.refresh()
 
@@ -492,7 +501,7 @@ def main(stdscr):
 
         if key == curses.KEY_UP and current_row_idx > 0:
             current_row_idx -= 1
-        elif key == curses.KEY_DOWN and current_row_idx < len(menu):
+        elif key == curses.KEY_DOWN and current_row_idx < len(menu) - 1:
             current_row_idx += 1
         elif key == curses.KEY_ENTER or key in [10, 13]:
             if menu[current_row_idx] == 'Exit':
