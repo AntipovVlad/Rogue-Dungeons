@@ -1,8 +1,14 @@
+from random import choice
+
+
 class Block:
-    def __init__(self, en_y: int, en_x: int) -> None:
+    def __init__(self, en_y: int, en_x: int, en_type: str) -> None:
         self.locked = False
         self.number = 2 ** 16
-        self.island = None
+        self.zone = None
+        self.block_type = en_type
+        self.skin = ''
+        self.visibility = False
 
         self.y = en_y
         self.x = en_x
@@ -13,6 +19,9 @@ class Block:
     def set_number(self, en_number: int) -> None:
         self.number = en_number
     
+    def make_visible(self) -> None:
+        self.visibility = True
+    
     def null(self) -> None:
         self.number = 2 ** 16
     
@@ -22,36 +31,157 @@ class Block:
     def is_counted(self) -> bool:
         return self.number != 2 ** 16
     
+    def is_visible(self) -> bool:
+        return self.visibility
+    
     def get_number(self) -> int:
         return self.number
     
-    def get_island(self) -> object:
-        return self.island
+    def get_zone(self) -> object:
+        return self.zone
+    
+    def get_type(self) -> str:
+        return self.block_type
+    
+    def get_skin(self) -> str:
+        return self.skin
 
 
-class SeaBlock(Block):
-    def __init__(self, en_y: int, en_x: int) -> None:
-        super().__init__(en_y, en_x)
+class Zone:
+    def __init__(self) -> None:
+        self.opened = False
+    
+    def open(self):
+        for obj in self.blocks:
+            obj.make_visible()
+    
+    def add_block(self, block: object) -> None:
+        self.blocks.append(block)
 
 
-class GroundBlock(Block):
-    def __init__(self, en_y: int, en_x: int, en_island: object, en_beach: bool = False) -> None:
-        super().__init__(en_y, en_x)
+class StoneBlock(Block):
+    def __init__(self, en_y: int, en_x: int, r: int) -> None:
+        super().__init__(en_y, en_x, 'stone')
+        self.skin = choice(['✦', '✧', '◈']) if r % 25 == 0 else ' '
+        self.br = None
+        self.make_visible()
+    
+    def set_stone_border(self, s):
+        self.skin = '▌'
+        self.br = s
+    
+    def get_border(self):
+        return self.br
+
+
+class RoomBlock(Block):
+    def __init__(self, en_y: int, en_x: int, en_zone: object, en_wall: str) -> None:
+        super().__init__(en_y, en_x, 'room')
+
+        self.zone = en_zone
+        # self.skin = {'': ' ', 'l': '║', 'r': '║', 't': '═', 'b': '═', 'lt': '╔', 'rt': '╗', 'lb': '╚', 'rb': '╝'}[en_wall]
+        self.skin = {'': ' ', 'l': '▌', 'r': '▐', 't': '▀', 'b': '▄', 'lt': '▛', 'rt': '▜', 'lb': '▙', 'rb': '▟'}[en_wall]
+        self.w = en_wall
         self.lock_block()
-
-        self.island = en_island
-        self.is_beach = en_beach
+    
+    def get_wall(self):
+        return self.w
 
 
 class BridgeBlock(Block):
-    def __init__(self, en_y: int, en_x: int) -> None:
-        super().__init__(en_y, en_x)
-        self.lock_block()
+    def __init__(self, en_y: int, en_x: int, en_zone: object) -> None:
+        super().__init__(en_y, en_x, 'bridge')
+        
+        self.skin = ' '
+        self.zone = en_zone
+        self.activator, self.rb = False, None
 
-class RectangularIsland:
+        self.lock_block()
+    
+    def get_room(self) -> object:
+        return self.rb
+    
+    def is_activator(self) -> bool:
+        return self.activator
+    
+    def set_skin(self, s: str) -> None:
+        self.skin = s
+    
+    def set_activator(self, sur: list) -> bool:
+        for s in sur:
+            if s.get_type() == 'room' and not s.is_visible():
+                self.activator = True
+                self.rb = s.get_zone()
+                
+                return True
+        
+        return False
+    
+    def activate(self) -> bool:
+        if self.activator:
+            self.activator = False
+            self.rb.open()
+
+            return True
+        
+        return False
+
+
+class Room(Zone):
     def __init__(self, coors: list) -> None:
         self.lt_y, self.lt_x = coors[0]
         self.rb_y, self.rb_x = coors[1]
+        self.activated = False
+        self.cleared = False
+
+        self.blocks = []
+        self.bridges = []
+        self.enemies = set()
     
     def get_coordinates(self) -> tuple:
         return self.lt_y, self.lt_x, self.rb_y, self.rb_x
+    
+    def get_enemies(self) -> set:
+        return self.enemies
+    
+    def is_cleared(self) -> bool:
+        return self.cleared
+    
+    def del_enemy(self, en) -> None:
+        self.enemies.discard(en)
+    
+    def clear(self) -> None:
+        self.cleared = True
+
+    def open_bridges(self) -> None:
+        for bridge in self.bridges:
+            bridge.open()
+
+            yield bridge.get_conn_dots(), bridge
+
+    def add_bridge(self, bridge: object):
+        self.bridges.append(bridge)
+    
+    def is_activated(self) -> bool:
+        return self.activated
+    
+    def activate(self, en_enemies: list = []) -> None:
+        if not self.activated:
+            self.activated = True
+            self.enemies = set(en_enemies.copy())
+
+
+class Bridge(Zone):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.rooms = []
+        self.blocks = []
+        self.conn_dots = []
+    
+    def get_conn_dots(self) -> list:
+        return self.conn_dots
+    
+    def add_room(self, room: object, en_y: int, en_x: int):
+        self.rooms.append(room)
+        self.conn_dots.append((en_y, en_x))

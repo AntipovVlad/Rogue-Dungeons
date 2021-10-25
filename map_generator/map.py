@@ -1,6 +1,6 @@
 import enum
 from shutil import get_terminal_size
-from map_elements import *
+from .map_elements import *
 from random import randint, choice
 
 
@@ -15,7 +15,7 @@ class Screen(enum.Enum):
 
 def is_free(field: list, lt_y: int, lt_x: int, height: int, width: int):
     """
-    Checking if island can be created in chosen coorinates
+    Checking if room can be created in chosen coorinates
     """
 
     flag = True
@@ -26,19 +26,19 @@ def is_free(field: list, lt_y: int, lt_x: int, height: int, width: int):
     
     return flag
 
-def create_island(field: list, free_blocks: list, islands: list, islands_number) -> bool:
+def create_room(field: list, free_blocks: list, rooms: list, rooms_number) -> bool:
     """
-    Creating island
+    Creating room
     """
 
-    # ========= Counting size of island ========
-    n_min = 5
-    n_max = 0.2
+    # ========= Counting size of room ========
+    n_min = 10
+    n_max = 0.5
 
     a = randint(n_min, int(n_max * Screen.f_height.value))
     b = randint(n_min, int(n_max * Screen.s_width.value))
 
-    # ========= Searching place for island ========
+    # ========= Searching place for room ========
     y, x = choice(free_blocks)
 
     while y + a - 1 >= Screen.f_height.value - 1 or x + b - 1 >= Screen.s_width.value - 1 or not is_free(field, y, x, a, b):
@@ -48,28 +48,40 @@ def create_island(field: list, free_blocks: list, islands: list, islands_number)
 
         y, x = choice(free_blocks)
     
-    # ========= Creating island and matching it on map ========
-    island = RectangularIsland([(y, x), (y + a - 1, x + b - 1)])
+    # ========= Creating room and matching it on map ========
+    room = Room([(y, x), (y + a - 1, x + b - 1)])
     for i in range(y, y + a):
         for j in range(x, x + b):
-            beach = (i - y) * (j - x) * (y + a - 1 - i) * (x + b - 1 - j) == 0
-            field[i][j] = GroundBlock(i, j, island, beach)
+            wall = ''
+            
+            if x + b - 1 - j == 0:
+                wall += 'r'
+            if j - x == 0:
+                wall += 'l'
+            if y + a - 1 - i == 0:
+                wall += 'b'
+            if i - y == 0:
+                wall += 't'
+            
+            r_block = RoomBlock(i, j, room, wall)
+            field[i][j] = r_block
+            room.add_block(r_block)
         
-    islands.append(island)
+    rooms.append(room)
 
     for i in range(max(0, y - 4), min(y + a + 4, Screen.f_height.value)):
         for j in range(max(0, x - 8), min(x + b + 8, Screen.s_width.value)):
-            if field[i][j].__class__.__name__ == 'SeaBlock':
+            if field[i][j].__class__.__name__ == 'StoneBlock':
                 field[i][j].lock_block()
 
     return True
 
-def find_island(field, island) -> tuple:
+def find_room(field, room) -> tuple:
     """
-    Searching the closest island for last created island
+    Searching the closest room for last created room
     """
 
-    lt_y, lt_x, rb_y, rb_x = island.get_coordinates()
+    lt_y, lt_x, rb_y, rb_x = room.get_coordinates()
     d_numbers = {0: []}
     step = 0
 
@@ -77,7 +89,7 @@ def find_island(field, island) -> tuple:
         for j in range(lt_x, rb_x + 1):
             case = int(i - lt_y == 0) + int(j - lt_x == 0) + int(i - rb_y == 0) + int(j - rb_x == 0)
 
-            if case > 0:
+            if case == 1:
                 field[i][j].set_number(step)
                 d_numbers[step].append((i, j))
     
@@ -93,11 +105,11 @@ def find_island(field, island) -> tuple:
                 if coor[1] > Screen.s_width.value - 2:
                     coor[1] = Screen.s_width.value - 2
                 
-                if field[coor[0]][coor[1]].get_island() is island:
+                if field[coor[0]][coor[1]].get_zone() is room or field[coor[0]][coor[1]].get_type() == 'room' and field[coor[0]][coor[1]].get_wall() in ['lt', 'rt', 'lb', 'lt']:
                     continue
 
                 if not field[coor[0]][coor[1]].is_counted():
-                    if field[coor[0]][coor[1]].__class__.__name__ == 'BridgeBlock' or field[coor[0]][coor[1]].__class__.__name__ == 'GroundBlock' and field[coor[0]][coor[1]].get_island() is not island:
+                    if field[coor[0]][coor[1]].get_type() == 'bridge' or field[coor[0]][coor[1]].get_type() == 'room':
                         return coor[0], coor[1], step + 1
                     
                     field[coor[0]][coor[1]].set_number(step + 1)
@@ -109,12 +121,21 @@ def find_island(field, island) -> tuple:
         step += 1
 
 
-def create_bridge(field, island) -> None:
+def create_bridge(field: list, room: Room, bridges: list) -> None:
     """
-    Creating bridge between current and the nearest islands
+    Creating bridge between current and the nearest rooms
     """
     
-    y, x, s = find_island(field, island)
+    y, x, s = find_room(field, room)
+
+    if field[y][x].get_type() == 'bridge':
+        bridge = field[y][x].get_zone()
+    else:
+        bridge = Bridge()
+        bridge.add_room(field[y][x].get_zone(), y, x)
+        field[y][x].get_zone().add_bridge(bridge)
+
+        bridges.append(bridge)
 
     while s != 1:
         if field[y - 1][x].get_number() == s - 1:
@@ -126,36 +147,49 @@ def create_bridge(field, island) -> None:
         elif field[y][x + 1].get_number() == s - 1:
             x = min(Screen.s_width.value - 2, x + 1)
         
-        field[y][x] = BridgeBlock(y, x)
+        field[y][x] = BridgeBlock(y, x, bridge)
+        bridge.add_block(field[y][x])
         for i in range(max(0, y - 2), min(y + 2, Screen.f_height.value)):
             for j in range(max(0, x - 2), min(x + 2, Screen.s_width.value)):
-                if field[i][j].__class__.__name__ == 'SeaBlock':
+                if field[i][j].get_type() == 'stone':
                     field[i][j].lock_block()
         
         s -= 1
     
+    if field[y - 1][x].get_number() == s - 1:
+        y = max(1, y - 1)
+    elif field[y + 1][x].get_number() == s - 1:
+        y = min(Screen.f_height.value - 2, y + 1)
+    elif field[y][x - 1].get_number() == s - 1:
+        x = max(1, x - 1)
+    elif field[y][x + 1].get_number() == s - 1:
+        x = min(Screen.s_width.value - 2, x + 1)
+    
+    bridge.add_room(room, y, x)
+    room.add_bridge(bridge)
+
     for i in range(Screen.f_height.value):
         for j in range(Screen.s_width.value):
             field[i][j].null()
     
 
-def generate_map(islands_number: int) -> list:
+def generate_map(rooms_number: int) -> tuple:
     """
     Generating map for current level
     """
 
-    field = [[SeaBlock(i, j) for j in range(Screen.s_width.value)] for i in range(Screen.f_height.value)]
-    islands = []
+    field = [[StoneBlock(i, j, randint(0, 100)) for j in range(Screen.s_width.value)] for i in range(Screen.f_height.value)]
+    rooms, bridges = [], []
     free_blocks = []
     for i in range(1, Screen.f_height.value - 1):
         for j in range(1, Screen.s_width.value - 1):
             free_blocks.append((i, j))
     
-    create_island(field, free_blocks, islands, islands_number)
-    for _ in range(islands_number - 1):
-        b = create_island(field, free_blocks, islands, islands_number)
+    create_room(field, free_blocks, rooms, rooms_number)
+    for _ in range(rooms_number - 1):
+        b = create_room(field, free_blocks, rooms, rooms_number)
         if not b:
             break
-        create_bridge(field, islands[-1])
+        create_bridge(field, rooms[-1], bridges)
     
-    return field
+    return field, rooms, bridges
