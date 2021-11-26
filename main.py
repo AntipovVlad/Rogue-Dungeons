@@ -1,11 +1,11 @@
 import curses
 from map_generator import map, map_elements
-from game_objects import hero, enemy, bomb, stair, coin
+from game_objects import hero, enemy, bomb, stair, coin, box
 from random import randint, choice
 from time import time, sleep
 
 
-SCORE = 0
+SCORE, LEVEL = 0, 0
 menu = ['Play', 'Scoreboard', 'Exit']
 
 def print_menu(stdscr, selected_row_idx):
@@ -105,19 +105,19 @@ def create_object(tp: str, objects_coors: dict, field: list, extra_params: dict)
             if objects_coors.get(coors) is None:
                 objects_coors[coors] = bomb.Explosion(coors[0], coors[1], time())
             
-            if objects_coors.get(coors) is not None and objects_coors[coors].get_type() == 'hero':
+            elif objects_coors.get(coors) is not None and objects_coors[coors].get_type() == 'hero':
                 objects_coors[coors].de_health()
             
-            if objects_coors.get(coors) is not None and objects_coors[coors].get_type() == 'enemy':
+            elif objects_coors.get(coors) is not None and objects_coors[coors].get_type() == 'enemy':
                 if objects_coors[coors].de_health(objects_coors):
                     SCORE += 100
             
-            if objects_coors.get(coors) is not None and objects_coors[coors].get_type() == 'box':
-                pass
-
-            if objects_coors.get(coors) is not None and objects_coors[coors].get_type() == 'coin':
+            elif objects_coors.get(coors) is not None and objects_coors[coors].get_type() == 'box':
+                objects_coors[coors] = coin.Coin(coors[0], coors[1])
+            
+            elif objects_coors.get(coors) is not None and objects_coors[coors].get_type() == 'coin':
                 objects_coors.pop(coors)
-    if tp in ['stair', 'coin']:
+    if tp in ['stair', 'coin', 'box']:
         room = extra_params['room']
 
         lt_y, lt_x, rb_y, rb_x = room.get_coordinates()
@@ -126,7 +126,12 @@ def create_object(tp: str, objects_coors: dict, field: list, extra_params: dict)
         while field[y][x].get_skin() != ' ' or objects_coors.get((y, x)) is not None:
             y, x = randint(lt_y + 1, rb_y - 1), randint(lt_x + 1, rb_x - 1)
 
-        objects_coors[(y, x)] = stair.Stair(y, x) if tp == 'stair' else coin.Coin(y, x)
+        if tp == 'stair':
+            objects_coors[(y, x)] = stair.Stair(y, x)
+        elif tp == 'coin':
+            objects_coors[(y, x)] = coin.Coin(y, x)
+        elif tp == 'box':
+            objects_coors[(y, x)] = box.Box(y, x)
 
 
 def check_collitions(hero, objects_coors, field, coors) -> bool:
@@ -154,7 +159,6 @@ def check_collitions(hero, objects_coors, field, coors) -> bool:
         if objects_coors[coors].get_type() == 'enemy':
             hero.de_health()
             objects_coors[coors].set_freeze()
-            # add freeze and blink
         
         if objects_coors[coors].get_type() == 'coin':
             py, px = hero.get_coordinates()
@@ -181,22 +185,21 @@ def activate_room(room, objects_coors, field, enemies: list) -> None:
     if not room.is_activated():
         lt_y, lt_x, rb_y, rb_x = room.get_coordinates()
         room_enemies = []
-        coins, ens, S = 0, 0, (rb_y - lt_y) * (rb_x - lt_x)
+        coins, ens, boxes, S = 0, 0, 0, (rb_y - lt_y) * (rb_x - lt_x)
         if S <= 500:
-            coins = 2
-            ens = 1
+            coins, ens, boxes = 2, 1, 4
         elif S <= 1000:
-            coins = 4
-            ens = 2
+            coins, ens, boxes = 4, 2, 6
         elif S <= 1500:
-            coins = 6
-            ens = 3
+            coins, ens, boxes = 6, 3, 8
         else:
-            coins = 8
-            ens = 4
+            coins, ens, boxes = 8, 4, 10
 
         for _ in range(coins):
             create_object('coin', objects_coors, field, {'room' : room})
+        
+        for _ in range(boxes):
+            create_object('box', objects_coors, field, {'room' : room})
 
         for _ in range(ens):
             by, bx = randint(lt_y + 1, rb_y - 1), randint(lt_x + 1, rb_x - 1)
@@ -216,7 +219,7 @@ def activate_room(room, objects_coors, field, enemies: list) -> None:
         room.activate(room_enemies)
 
 
-def move(enemies, objects_coors, field, hero) -> None:
+def action(enemies, objects_coors, field, hero) -> None:
     c_objects_coors = objects_coors.copy()
 
     for coors in c_objects_coors:
@@ -250,33 +253,21 @@ def move(enemies, objects_coors, field, hero) -> None:
 
 
 def out_info(stdscr, hero) -> None:
-    global SCORE
-
+    global SCORE, LEVEL
+    
     h, w = stdscr.getmaxyx()
+    frazes = [(1, 'HP: ', 10), (5, '♥ ' * hero.get_hp(), 9), (w // 2 - len(f'Score: {SCORE}') // 2, f'Score: {SCORE}', 10), (w - 2 - len(f'Level: {LEVEL}'), f'Level: {LEVEL}', 10)]
     y = int(h * 0.1)
 
-    for i in list(range(y)) + list(range(h - y, h)):
+    for i in list(range(y)) + list(range(h - y - 1, h)):
         for j in range(w):
             stdscr.attron(curses.color_pair(10))
             stdscr.insch(i, j, ' ')
             stdscr.attroff(curses.color_pair(10))
     
-    y, x = 1, 1
-    add_str(stdscr, y, x, 'HP: ', 10)
-    
-    x += 4
-    add_str(stdscr, y, x, '♥ ' * hero.get_hp(), 9)
-    
-    x += hero.get_hp() * 2 - 1
-
-    stdscr.attron(curses.color_pair(3))
-    stdscr.addstr(y, x, ' ' * (hero.get_hp() - hero.get_hp()))
-    stdscr.attroff(curses.color_pair(3))
-
-    x = w // 2 - len(f'Score: {SCORE}') // 2
-    stdscr.attron(curses.color_pair(10))
-    stdscr.addstr(y, x, f'Score: {SCORE}')
-    stdscr.attroff(curses.color_pair(10))
+    y = 1
+    for f in frazes:
+        add_str(stdscr, y, f[0], f[1], f[2])
 
     stdscr.refresh()
 
@@ -329,6 +320,8 @@ def out_objects(stdscr, field, objects_coors) -> None:
             t, s = 14, obj.get_skin()
         elif obj.get_type() == 'coin':
             t, s = 13, obj.get_skin()
+        elif obj.get_type() == 'box':
+            t, s = 18, obj.get_skin()
         
         add_str(stdscr, y + coors[0], coors[1], s, t)
     
@@ -336,9 +329,12 @@ def out_objects(stdscr, field, objects_coors) -> None:
 
 
 def play(stdscr) -> None:
+    global LEVEL
+
     levels = 10
 
     for _ in range(levels):
+        LEVEL += 1
         objects_coors = {}
         enemies = set()
         c_exit = False
@@ -361,7 +357,7 @@ def play(stdscr) -> None:
             if H.is_dead():
                 return False
             
-            move(enemies, objects_coors, field, H)
+            action(enemies, objects_coors, field, H)
 
             out_info(stdscr, H)
             out_map(stdscr, field, start)
@@ -454,6 +450,7 @@ def init_curses():
     curses.init_pair(11, 12, curses.COLOR_BLACK)
     curses.init_pair(12, curses.COLOR_BLACK, 12)
     curses.init_pair(16, 233, curses.COLOR_WHITE)
+    #curses.init_pair(19, 233, curses.COLOR_WHITE)
 
     # ======== Bombs ========
     curses.init_pair(5, 21, curses.COLOR_BLACK)
@@ -480,6 +477,9 @@ def init_curses():
     # ======== Hero ========
     curses.init_pair(15, curses.COLOR_GREEN + 8, curses.COLOR_BLACK)
     curses.init_pair(17, curses.COLOR_GREEN + 8, -1)
+
+    # ======== Boxes ========
+    curses.init_pair(18, curses.COLOR_YELLOW, curses.COLOR_BLACK)
     
     # ======== Exit ========
     curses.init_pair(203, 203, curses.COLOR_BLACK)
