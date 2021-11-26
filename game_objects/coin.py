@@ -1,10 +1,10 @@
 from .base_object import *
 from time import time
-# ◎ ◉
+
 
 class Coin(BaseObject):
     def __init__(self, en_y: int, en_x: int) -> None:
-        super().__init__(en_y, en_x, 'coin', '◉')
+        super().__init__(en_y, en_x, 'coin', chr(int('2460', 16)))
         self.bl = 0
         self.t = time()
     

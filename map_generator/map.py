@@ -2,7 +2,7 @@ import enum
 from shutil import get_terminal_size
 from .map_elements import *
 from random import randint, choice
-
+from time import sleep
 
 class Screen(enum.Enum):
     """
@@ -26,7 +26,7 @@ def is_free(field: list, lt_y: int, lt_x: int, height: int, width: int):
     
     return flag
 
-def create_room(field: list, free_blocks: list, rooms: list, rooms_number) -> bool:
+def create_room(field: list, free_blocks: list, rooms: list) -> bool:
     """
     Creating room
     """
@@ -107,6 +107,15 @@ def find_room(field, room) -> tuple:
                 
                 if field[coor[0]][coor[1]].get_zone() is room or field[coor[0]][coor[1]].get_type() == 'room' and field[coor[0]][coor[1]].get_wall() in ['lt', 'rt', 'lb', 'lt']:
                     continue
+                
+                n = False
+                for n_coor in [[coor[0] - 1, coor[1]], [coor[0] + 1, coor[1]], [coor[0], coor[1] - 1], [coor[0], coor[1] + 1], [coor[0] - 1, coor[1] - 1], [coor[0] + 1, coor[1] + 1], [coor[0] + 1, coor[1] - 1], [coor[0] - 1, coor[1] + 1]]:
+                    if field[n_coor[0]][n_coor[1]].get_type() == 'room' and field[n_coor[0]][n_coor[1]].get_wall() in ['lt', 'rt', 'lb', 'lt']:
+                        n = True
+                        break
+                
+                if n:
+                    continue
 
                 if not field[coor[0]][coor[1]].is_counted():
                     if field[coor[0]][coor[1]].get_type() == 'bridge' or field[coor[0]][coor[1]].get_type() == 'room':
@@ -171,7 +180,7 @@ def create_bridge(field: list, room: Room, bridges: list) -> None:
     for i in range(Screen.f_height.value):
         for j in range(Screen.s_width.value):
             field[i][j].null()
-    
+
 
 def generate_map(rooms_number: int) -> tuple:
     """
@@ -185,11 +194,11 @@ def generate_map(rooms_number: int) -> tuple:
         for j in range(1, Screen.s_width.value - 1):
             free_blocks.append((i, j))
     
-    create_room(field, free_blocks, rooms, rooms_number)
+    create_room(field, free_blocks, rooms)
     for _ in range(rooms_number - 1):
-        b = create_room(field, free_blocks, rooms, rooms_number)
+        b = create_room(field, free_blocks, rooms)
         if not b:
             break
         create_bridge(field, rooms[-1], bridges)
-    
+        
     return field, rooms, bridges

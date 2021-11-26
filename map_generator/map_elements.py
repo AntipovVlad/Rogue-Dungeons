@@ -79,7 +79,6 @@ class RoomBlock(Block):
         super().__init__(en_y, en_x, 'room')
 
         self.zone = en_zone
-        # self.skin = {'': ' ', 'l': '║', 'r': '║', 't': '═', 'b': '═', 'lt': '╔', 'rt': '╗', 'lb': '╚', 'rb': '╝'}[en_wall]
         self.skin = {'': ' ', 'l': '▌', 'r': '▐', 't': '▀', 'b': '▄', 'lt': '▛', 'rt': '▜', 'lb': '▙', 'rb': '▟'}[en_wall]
         self.w = en_wall
         self.lock_block()
