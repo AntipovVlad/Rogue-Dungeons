@@ -13,9 +13,23 @@ class Screen(enum.Enum):
     b_height, f_height = int(0.1 * s_height), int(0.8 * s_height)
 
 
-def is_free(field: list, lt_y: int, lt_x: int, height: int, width: int):
+def is_free(field: list, lt_y: int, lt_x: int, height: int, width: int) -> bool:
     """
     Checking if room can be created in chosen coorinates
+ 
+    :param field: map field array
+    :type field: list
+    :param lt_y: left-top y coordinate
+    :type lt_y: int
+    :param lt_x: left-top x coordinate
+    :type lt_x: int
+    :param height: height of room
+    :type height: int
+    :param width: width of room
+    :type width: int
+    
+    :rtype: bool
+    :return: is it possible to create room
     """
 
     flag = True
@@ -29,6 +43,16 @@ def is_free(field: list, lt_y: int, lt_x: int, height: int, width: int):
 def create_room(field: list, free_blocks: list, rooms: list) -> bool:
     """
     Creating room
+ 
+    :param field: map field array
+    :type field: list
+    :param free_blocks: array of free blocks
+    :type free_blocks: list
+    :param rooms: array of created rooms
+    :type rooms: list
+    
+    :rtype: bool
+    :return: whether created room or not
     """
 
     # ========= Counting size of room ========
@@ -76,9 +100,18 @@ def create_room(field: list, free_blocks: list, rooms: list) -> bool:
 
     return True
 
-def find_room(field, room) -> tuple:
+
+def find_room(field: list, room: Room) -> tuple:
     """
     Searching the closest room for last created room
+ 
+    :param field: map field array
+    :type field: list
+    :param room: recently created room
+    :type room: Room
+    
+    :rtype: tuple
+    :return: coordinates of founded room and distance between rooms
     """
 
     lt_y, lt_x, rb_y, rb_x = room.get_coordinates()
@@ -105,12 +138,12 @@ def find_room(field, room) -> tuple:
                 if coor[1] > Screen.s_width.value - 2:
                     coor[1] = Screen.s_width.value - 2
                 
-                if field[coor[0]][coor[1]].get_zone() is room or field[coor[0]][coor[1]].get_type() == 'room' and field[coor[0]][coor[1]].get_wall() in ['lt', 'rt', 'lb', 'lt']:
+                if field[coor[0]][coor[1]].get_zone() is room or field[coor[0]][coor[1]].get_type() == 'room' and field[coor[0]][coor[1]].get_wall() in ['lt', 'rt', 'lb', 'rb']:
                     continue
                 
                 n = False
                 for n_coor in [[coor[0] - 1, coor[1]], [coor[0] + 1, coor[1]], [coor[0], coor[1] - 1], [coor[0], coor[1] + 1], [coor[0] - 1, coor[1] - 1], [coor[0] + 1, coor[1] + 1], [coor[0] + 1, coor[1] - 1], [coor[0] - 1, coor[1] + 1]]:
-                    if field[n_coor[0]][n_coor[1]].get_type() == 'room' and field[n_coor[0]][n_coor[1]].get_wall() in ['lt', 'rt', 'lb', 'lt']:
+                    if field[n_coor[0]][n_coor[1]].get_type() == 'room' and field[n_coor[0]][n_coor[1]].get_wall() in ['lt', 'rt', 'lb', 'rb']:
                         n = True
                         break
                 
@@ -133,6 +166,16 @@ def find_room(field, room) -> tuple:
 def create_bridge(field: list, room: Room, bridges: list) -> None:
     """
     Creating bridge between current and the nearest rooms
+ 
+    :param field: map field array
+    :type field: list
+    :param room: current room
+    :type room: Room
+    :param bridges: array of bridges
+    :type bridges: list
+    
+    :rtype: None
+    :return: None
     """
     
     y, x, s = find_room(field, room)
@@ -184,10 +227,16 @@ def create_bridge(field: list, room: Room, bridges: list) -> None:
 
 def generate_map(rooms_number: int) -> tuple:
     """
-    Generating map for current level
+    Creates map of level
+ 
+    :param rooms_number: number of rooms for map
+    :type rooms_number: int
+    
+    :rtype: tuple
+    :return: map, array of rooms, array of bridjes
     """
 
-    field = [[StoneBlock(i, j, randint(0, 100)) for j in range(Screen.s_width.value)] for i in range(Screen.f_height.value)]
+    field = [[StoneBlock(i, j) for j in range(Screen.s_width.value)] for i in range(Screen.f_height.value)]
     rooms, bridges = [], []
     free_blocks = []
     for i in range(1, Screen.f_height.value - 1):

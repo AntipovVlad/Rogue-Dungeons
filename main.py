@@ -1,14 +1,26 @@
 import curses
 from map_generator import map, map_elements
 from game_objects import hero, enemy, bomb, stair, coin, box
-from random import randint, choice
-from time import time, sleep
+from random import randint
+from time import time
 
 
 SCORE, LEVEL = 0, 0
 menu = ['Play', 'Scoreboard', 'Exit']
 
-def print_menu(stdscr, selected_row_idx):
+def print_menu(stdscr: object, selected_row_idx: int) -> None:
+    """
+    Printing game menu
+
+    :param stdscr: screen
+    :type stdscr: object
+    :param selected_row_idx: index of selected option
+    :type selected_row_idx: int
+    
+    :rtype: None
+    :return: None
+    """
+    
     global menu
     screen = []
     mx_len = 0
@@ -60,7 +72,19 @@ def print_menu(stdscr, selected_row_idx):
     stdscr.refresh()
 
 
-def print_ending(stdscr, text):
+def print_ending(stdscr: object, text: str):
+    """
+    Printing ending text
+
+    :param stdscr: screen
+    :type stdscr: object
+    :param text: end text
+    :type text: str
+    
+    :rtype: None
+    :return: None
+    """
+    
     stdscr.clear()
     h, w = stdscr.getmaxyx()
 
@@ -81,13 +105,47 @@ def print_ending(stdscr, text):
     stdscr.refresh()
 
 
-def add_str(stdscr, y, x, s, t) -> None:
+def add_str(stdscr: object, y: int, x: int, s: str, t: int) -> None:
+    """
+    'Fish' for screen output
+
+    :param stdscr: screen
+    :type stdscr: object
+    :param y: y coordinate
+    :type y: int
+    :param x: x coordinate
+    :type x: int
+    :param s: text
+    :type s: str
+    :param t: color type
+    :type t: int
+    
+    :rtype: None
+    :return: None
+    """
+    
     stdscr.attron(curses.color_pair(t))
     stdscr.addstr(y, x, s)
     stdscr.attroff(curses.color_pair(t))
 
 
 def create_object(tp: str, objects_coors: dict, field: list, extra_params: dict) -> None:
+    """
+    Creation of new game object
+
+    :param tp: name of object
+    :type tp: str
+    :param object_coors: coordinates of new game object
+    :type object_coors: dict
+    :param field: map array
+    :type field: list
+    :param extra_params: additional parameters
+    :type extra_params: dict
+
+    :rtype: None
+    :return: None
+    """
+    
     global SCORE
 
     if tp == 'bomb':
@@ -113,7 +171,10 @@ def create_object(tp: str, objects_coors: dict, field: list, extra_params: dict)
                     SCORE += 100
             
             elif objects_coors.get(coors) is not None and objects_coors[coors].get_type() == 'box':
-                objects_coors[coors] = coin.Coin(coors[0], coors[1])
+                if randint(0, 100) % 10 == 0:
+                    objects_coors[coors] = coin.Coin(coors[0], coors[1])
+                else:
+                    objects_coors.pop(coors)
             
             elif objects_coors.get(coors) is not None and objects_coors[coors].get_type() == 'coin':
                 objects_coors.pop(coors)
@@ -134,7 +195,23 @@ def create_object(tp: str, objects_coors: dict, field: list, extra_params: dict)
             objects_coors[(y, x)] = box.Box(y, x)
 
 
-def check_collitions(hero, objects_coors, field, coors) -> bool:
+def check_collitions(hero: hero.Hero, objects_coors: dict, field: list, coors: tuple) -> bool:
+    """
+    Replacement of hero
+
+    :param hero: Hero object
+    :type hero: hero.Hero
+    :param objects_coors: dictinary of coordinates and their objects
+    :type objects_coors: dict
+    :param field: map array
+    :type field: list
+    :param coors: coordinates of hero
+    :type coors: tuple
+    
+    :rtype: bool
+    :return: whether hero changed possiotion or not
+    """
+    
     global SCORE
 
     if field[coors[0]][coors[1]].get_skin() == ' ' and field[coors[0]][coors[1]].get_type() == 'room' or field[coors[0]][coors[1]].get_type() == 'bridge':
@@ -181,7 +258,23 @@ def check_collitions(hero, objects_coors, field, coors) -> bool:
     return False
 
 
-def activate_room(room, objects_coors, field, enemies: list) -> None:
+def activate_room(room: map_elements.Room, objects_coors: dict, field: list, enemies: list) -> None:
+    """
+    Makes room active
+
+    :param room: room object
+    :type room: map_elements.Room
+    :param object_coors: dictinary of coordinates and their objects
+    :type object_coors: dict
+    :param field: map array
+    :type field: list
+    :param enemies: array of room enemies
+    :type enemies: list
+
+    :rtype: None
+    :return: None
+    """
+    
     if not room.is_activated():
         lt_y, lt_x, rb_y, rb_x = room.get_coordinates()
         room_enemies = []
@@ -219,7 +312,23 @@ def activate_room(room, objects_coors, field, enemies: list) -> None:
         room.activate(room_enemies)
 
 
-def action(enemies, objects_coors, field, hero) -> None:
+def action(enemies: set, objects_coors: dict, field: list, hero: hero.Hero) -> None:
+    """
+    Changing objects' statements
+
+    :param enemies: array of enemies
+    :type enemies: set
+    :param object_coors: dictinary of coordinates and their objects
+    :type object_coors: dict
+    :param field: map array
+    :type field: list
+    :param hero: Hero object
+    :type hero: hero.Hero
+
+    :rtype: None
+    :return: None
+    """
+    
     c_objects_coors = objects_coors.copy()
 
     for coors in c_objects_coors:
@@ -252,7 +361,19 @@ def action(enemies, objects_coors, field, hero) -> None:
             en.move(field, objects_coors, hero)
 
 
-def out_info(stdscr, hero) -> None:
+def out_info(stdscr: object, hero: hero.Hero) -> None:
+    """
+    Outputs game information
+
+    :param stdscr: screen
+    :type stdscr: object
+    :param hero: Hero object
+    :type hero: hero.Hero
+
+    :rtype: None
+    :return: None
+    """
+
     global SCORE, LEVEL
     
     h, w = stdscr.getmaxyx()
@@ -272,7 +393,21 @@ def out_info(stdscr, hero) -> None:
     stdscr.refresh()
 
 
-def out_map(stdscr, field, start) -> None:
+def out_map(stdscr: object, field: list, start: float) -> None:
+    """
+    Outputs map
+
+    :param stdscr: screen
+    :type stdscr: object
+    :param field: map array
+    :type field: list
+    :param start: time, when game started
+    :type start: float
+
+    :rtype: None
+    :return: None
+    """
+    
     h, _ = stdscr.getmaxyx()
     y = int(h * 0.1)
 
@@ -299,7 +434,21 @@ def out_map(stdscr, field, start) -> None:
     stdscr.refresh()
 
 
-def out_objects(stdscr, field, objects_coors) -> None:
+def out_objects(stdscr: object, field: list, objects_coors: dict) -> None:
+    """
+    Outputs game objects
+
+    :param stdscr: screen
+    :type stdscr: object
+    :param field: map array
+    :type field: list
+    :param object_coors: dictinary of coordinates and their objects
+    :type object_coors: dict
+
+    :rtype: None
+    :return: None
+    """
+    
     h, _ = stdscr.getmaxyx()
     y = int(h * 0.1)
     
@@ -328,10 +477,22 @@ def out_objects(stdscr, field, objects_coors) -> None:
     stdscr.refresh()
 
 
-def play(stdscr) -> None:
+def play(stdscr: object) -> None:
+    """
+    Main levels' cycle
+
+    :param stdscr: screen
+    :type stdscr: object
+
+    :rtype: None
+    :return: None
+    """
+    
     global LEVEL
 
-    levels = 10
+    LEVEL = 0
+
+    levels = 4
 
     for _ in range(levels):
         LEVEL += 1
@@ -400,7 +561,7 @@ def play(stdscr) -> None:
                         for ey, ex in obj.explode():
                             create_object('expl', objects_coors, field, {'coors': (ey, ex)})
             
-            if key == ord('o') or not cur_room.is_cleared() and len(cur_room.get_enemies()) == 0:
+            if not cur_room.is_cleared() and len(cur_room.get_enemies()) == 0:
                 cleared += 1
 
                 cur_room.clear()
@@ -435,7 +596,14 @@ def play(stdscr) -> None:
     
     return True
 
-def init_curses():
+def init_curses() -> None:
+    """
+    Initializes colors
+
+    :rtype: None
+    :return: None
+    """
+    
     curses.curs_set(0)
     curses.start_color()
     curses.use_default_colors()
@@ -484,7 +652,15 @@ def init_curses():
     # ======== Exit ========
     curses.init_pair(203, 203, curses.COLOR_BLACK)
 
-def main(stdscr):
+
+def main(stdscr: object) -> None:
+    """
+    Game loop
+
+    :param stdscr: screen
+    :type stdscr: object
+    """
+    
     stdscr.nodelay(1)
     stdscr.timeout(100)
 
