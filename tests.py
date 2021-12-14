@@ -134,6 +134,33 @@ class MainTest(unittest.TestCase):
 
     def testMapGenerating(self):
         self.assertLessEqual(len(map.generate_map(5)[1]), 5)
+    
+    def testAction(self):
+        global rooms, field
+        objects_coors = {}
+        enemies = set()
+
+        lt_y, lt_x, rb_y, rb_x = rooms[0].get_coordinates()
+        hy, hx = (lt_y + rb_y) // 2, (lt_x + rb_x) // 2
+        H = hero.Hero(hy, hx)
+        objects_coors[(hy, hx)] = H
+        objects_coors[(hy + 1, hx)] = bomb.Bomb(hy + 1, hx, time())
+        objects_coors[(hy + 2, hx)] = bomb.Bomb(hy + 2, hx, time() - 5)
+        objects_coors[(hy - 1, hx)] = bomb.Explosion(hy - 1, hx, time())
+        objects_coors[(hy - 2, hx)] = bomb.Explosion(hy - 2, hx, time() - 5)
+        en = enemy.Snake(hy - 8, hx, rooms[0])
+        objects_coors[(hy - 3, hx)] = en
+        enemies.add(en)
+        snake = en.get_coordinates()
+
+        main.action(enemies, objects_coors, field, H)
+        self.assertEqual(snake, list(enemies)[0].get_coordinates())
+        self.assertIsNone(objects_coors.get((hy + 2, hx)))
+        self.assertIsNone(objects_coors.get((hy - 2, hx)))
+
+        sleep(2)
+        main.action(enemies, objects_coors, field, H)
+        self.assertFalse(list(enemies)[0].is_freeze())
 
 
 if __name__ == '__main__':

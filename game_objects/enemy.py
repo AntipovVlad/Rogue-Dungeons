@@ -7,7 +7,7 @@ class Snake:
     Class of snake enemy
     """
     
-    def __init__(self, en_y: int, en_x: int, en_room: object, l: int) -> None:
+    def __init__(self, en_y: int, en_x: int, en_room: object, l: int = 0) -> None:
         """
         Initial function
 
