@@ -2,7 +2,6 @@ import enum
 from shutil import get_terminal_size
 from .map_elements import *
 from random import randint, choice
-from time import sleep
 
 class Screen(enum.Enum):
     """

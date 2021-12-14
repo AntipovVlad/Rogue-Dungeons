@@ -215,4 +215,4 @@ class Snake:
         self.hp -= d
         objects_coors.pop(self.body.pop())
 
-        return self.hp < 1
+        return self.hp > 0

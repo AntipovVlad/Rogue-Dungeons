@@ -1,6 +1,6 @@
-import curses
 from map_generator import map, map_elements
 from game_objects import hero, enemy, bomb, stair, coin, box
+import curses
 from random import randint
 from time import time
 from typing import Union
@@ -73,7 +73,7 @@ def print_menu(stdscr: object, selected_row_idx: int) -> None:
     stdscr.refresh()
 
 
-def print_ending(stdscr: object, text: str):
+def print_ending(stdscr: object) -> None:
     """
     Printing ending text
 
@@ -85,23 +85,28 @@ def print_ending(stdscr: object, text: str):
     :rtype: None
     :return: None
     """
+    global SCORE
+
+    stdscr.clear()    
     
-    stdscr.clear()
     h, w = stdscr.getmaxyx()
 
-    x = w // 2 - len(text) // 2
+    for i in range(h):
+        for j in range(w):
+            stdscr.attron(curses.color_pair(3))
+            stdscr.insch(i, j, ' ')
+            stdscr.attroff(curses.color_pair(3))
+
+    x = w // 2 - len(f'Game over. Your score: {SCORE}') // 2
     y = h // 2 - 1
 
-    stdscr.attron(curses.color_pair(3))
-    stdscr.addstr(y, x, text)
-    stdscr.attroff(curses.color_pair(3))
+    add_str(stdscr, y, x, f'Game over. Your score: {SCORE}', 3)
 
     x = w // 2 - len("Enter 'e' to continue") // 2
     y = h // 2
 
-    stdscr.attron(curses.color_pair(3))
-    stdscr.addstr(y, x, "Enter 'e' to continue")
-    stdscr.attroff(curses.color_pair(3))
+    add_str(stdscr, y, x, 'Enter "e" to continue', 3)
+
     
     stdscr.refresh()
 
@@ -488,7 +493,7 @@ def play(stdscr: object) -> Union[bool, None]:
 
     LEVEL = 0
 
-    levels = 4
+    levels = 1024
 
     for _ in range(levels):
         LEVEL += 1
@@ -496,10 +501,7 @@ def play(stdscr: object) -> Union[bool, None]:
         enemies = set()
         c_exit = False
 
-        try:
-            field, rooms, bridges = map.generate_map(5)
-        except ValueError:
-            return None
+        field, rooms, bridges = map.generate_map(5)
         
         start = time()
         cleared = 0
@@ -684,16 +686,10 @@ def main(stdscr: object) -> None:
                 break
             
             if menu[current_row_idx] == 'Play':
-                fn = play(stdscr)
+                play(stdscr)
 
-                if fn is None:
-                    print('Make terminal size bigger!')
-                    return
-                if fn:
-                    print_ending(stdscr, 'Congratilations! You won!')
-                else:
-                    print_ending(stdscr, 'Game over')
-                
+                print_ending(stdscr)
+
                 while 1:
                     k = stdscr.getch()
 
