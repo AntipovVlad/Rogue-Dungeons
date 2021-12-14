@@ -1,4 +1,4 @@
-from random import choice
+from random import choice, randint
 from time import time
 
 
@@ -7,7 +7,7 @@ class Snake:
     Class of snake enemy
     """
     
-    def __init__(self, en_y: int, en_x: int, en_room: object) -> None:
+    def __init__(self, en_y: int, en_x: int, en_room: object, l: int) -> None:
         """
         Initial function
 
@@ -17,12 +17,14 @@ class Snake:
         :type en_x: int
         :param en_room: room where the object is placed
         :type en_room: object
+        :param l: level
+        :type l: int
 
         :rtype: None
         :return: None
         """
 
-        self.hp = 3
+        self.hp = randint(3, 3 + l)
         self.body = [(en_y, en_x - i) for i in range(self.hp)]
         self.room = en_room
         self.direction = choice(['l', 't', 'r', 'b'])

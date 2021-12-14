@@ -3,6 +3,7 @@ from map_generator import map, map_elements
 from game_objects import hero, enemy, bomb, stair, coin, box
 from random import randint
 from time import time
+from typing import Union
 
 
 SCORE, LEVEL = 0, 0
@@ -209,7 +210,7 @@ def check_collitions(hero: hero.Hero, objects_coors: dict, field: list, coors: t
     :type coors: tuple
     
     :rtype: bool
-    :return: whether hero changed possiotion or not
+    :return: whether hero found exit or not
     """
     
     global SCORE
@@ -220,11 +221,8 @@ def check_collitions(hero: hero.Hero, objects_coors: dict, field: list, coors: t
             objects_coors.pop((py, px))
 
             objects_coors[coors] = hero
-            hero.set_possintion(coors[0], coors[1])
-
-            return False
-        
-        if objects_coors[coors].get_type() == 'stair':
+            hero.set_possintion(coors[0], coors[1])        
+        elif objects_coors[coors].get_type() == 'stair':
             py, px = hero.get_coordinates()
             objects_coors.pop((py, px))
 
@@ -232,12 +230,10 @@ def check_collitions(hero: hero.Hero, objects_coors: dict, field: list, coors: t
             hero.set_possintion(coors[0], coors[1])
             
             return True
-        
-        if objects_coors[coors].get_type() == 'enemy':
+        elif objects_coors[coors].get_type() == 'enemy':
             hero.de_health()
             objects_coors[coors].set_freeze()
-        
-        if objects_coors[coors].get_type() == 'coin':
+        elif objects_coors[coors].get_type() == 'coin':
             py, px = hero.get_coordinates()
             objects_coors.pop((py, px))
 
@@ -245,8 +241,7 @@ def check_collitions(hero: hero.Hero, objects_coors: dict, field: list, coors: t
             SCORE += 10
             
             objects_coors[coors] = hero
-        
-        if objects_coors[coors].get_type() == 'expl':
+        elif objects_coors[coors].get_type() == 'expl':
             py, px = hero.get_coordinates()
             objects_coors.pop((py, px))
 
@@ -258,7 +253,7 @@ def check_collitions(hero: hero.Hero, objects_coors: dict, field: list, coors: t
     return False
 
 
-def activate_room(room: map_elements.Room, objects_coors: dict, field: list, enemies: list) -> None:
+def activate_room(room: map_elements.Room, objects_coors: dict, field: list, enemies: set) -> None:
     """
     Makes room active
 
@@ -274,6 +269,7 @@ def activate_room(room: map_elements.Room, objects_coors: dict, field: list, ene
     :rtype: None
     :return: None
     """
+    global LEVEL
     
     if not room.is_activated():
         lt_y, lt_x, rb_y, rb_x = room.get_coordinates()
@@ -299,7 +295,7 @@ def activate_room(room: map_elements.Room, objects_coors: dict, field: list, ene
             en = enemy.Snake(by, bx, room)
             while not en.can_extist(field, objects_coors):
                 by, bx = randint(lt_y + 1, rb_y - 1), randint(lt_x + 1, rb_x - 1)
-                en = enemy.Snake(by, bx, room)
+                en = enemy.Snake(by, bx, room, LEVEL)
             
             en.set_freeze()
 
@@ -477,15 +473,15 @@ def out_objects(stdscr: object, field: list, objects_coors: dict) -> None:
     stdscr.refresh()
 
 
-def play(stdscr: object) -> None:
+def play(stdscr: object) -> Union[bool, None]:
     """
     Main levels' cycle
 
     :param stdscr: screen
     :type stdscr: object
 
-    :rtype: None
-    :return: None
+    :rtype: bool or None
+    :return: win or loose, can't start
     """
     
     global LEVEL
@@ -500,7 +496,11 @@ def play(stdscr: object) -> None:
         enemies = set()
         c_exit = False
 
-        field, rooms, bridges = map.generate_map(5)
+        try:
+            field, rooms, bridges = map.generate_map(5)
+        except ValueError:
+            return None
+        
         start = time()
         cleared = 0
 
@@ -686,6 +686,8 @@ def main(stdscr: object) -> None:
             if menu[current_row_idx] == 'Play':
                 fn = play(stdscr)
 
+                if fn is None:
+                    print('Make terminal size bigger!')
                 if fn:
                     print_ending(stdscr, 'Congratilations! You won!')
                 else:
@@ -703,7 +705,8 @@ def main(stdscr: object) -> None:
         stdscr.refresh()
 
 
-try:
-    curses.wrapper(main)
-except KeyboardInterrupt:
-    pass
+if __name__ == '__main__':
+    try:
+        curses.wrapper(main)
+    except KeyboardInterrupt:
+        pass
