@@ -7,7 +7,7 @@ from typing import Union
 
 
 SCORE, LEVEL = 0, 0
-menu = ['Play', 'Scoreboard', 'Exit']
+menu = ['Play', 'Exit']
 
 def print_menu(stdscr: object, selected_row_idx: int) -> None:
     """
@@ -292,7 +292,7 @@ def activate_room(room: map_elements.Room, objects_coors: dict, field: list, ene
 
         for _ in range(ens):
             by, bx = randint(lt_y + 1, rb_y - 1), randint(lt_x + 1, rb_x - 1)
-            en = enemy.Snake(by, bx, room)
+            en = enemy.Snake(by, bx, room, LEVEL)
             while not en.can_extist(field, objects_coors):
                 by, bx = randint(lt_y + 1, rb_y - 1), randint(lt_x + 1, rb_x - 1)
                 en = enemy.Snake(by, bx, room, LEVEL)
@@ -669,7 +669,7 @@ def main(stdscr: object) -> None:
     current_row_idx = 0
     
     print_menu(stdscr, current_row_idx)
-    
+        
     while 1:
         key = stdscr.getch()
 
@@ -688,6 +688,7 @@ def main(stdscr: object) -> None:
 
                 if fn is None:
                     print('Make terminal size bigger!')
+                    return
                 if fn:
                     print_ending(stdscr, 'Congratilations! You won!')
                 else:
@@ -710,3 +711,5 @@ if __name__ == '__main__':
         curses.wrapper(main)
     except KeyboardInterrupt:
         pass
+    except curses.error:
+        print('Make terminal size bigger!')
